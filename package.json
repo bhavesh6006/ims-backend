@@ -19,8 +19,11 @@
   },
   "homepage": "https://github.com/bhavesh6006/ims-backend#readme",
   "dependencies": {
+    "dotenv": "^16.4.7",
     "express": "^5.2.1",
-    "nyc": "^17.1.0"
+    "nyc": "^17.1.0",
+    "pg": "^8.13.1",
+    "sequelize": "^6.37.5"
   },
   "devDependencies": {
     "chai": "^6.2.2",

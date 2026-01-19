@@ -1,21 +1,21 @@
-const Trolly  = require('../models/trolly.model');
+const Material  = require('../models/material.model');
 // StoreLocation
 
 
-class TrollyController {
+class MaterialController {
   /**
-   * Get all trollies
+   * Get all materials
    */
-  async getAllTrollies(req, res) {
+  async getAllMaterials(req, res) {
     try {
       const { status, type, location } = req.query;
       const whereClause = {};
 
       if (status) whereClause.status = status;
-      if (type) whereClause.trolly_type = type;
+      if (type) whereClause.material_type = type;
       if (location) whereClause.current_location_id = location;
 
-      const trollies = await Trolly.findAll({
+      const materials = await Material.findAll({
         where: whereClause,
         // include: [{ model: StoreLocation, as: 'currentLocation' }],
         order: [['created_at', 'DESC']]
@@ -23,127 +23,127 @@ class TrollyController {
 
       res.status(200).json({
         success: true,
-        count: trollies.length,
-        data: trollies
+        count: materials.length,
+        data: materials
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Failed to retrieve trollies',
+        message: 'Failed to retrieve materials',
         error: error.message
       });
     }
   }
 
   /**
-   * Get trolly by ID
+   * Get material by ID
    */
-  async getTrollyById(req, res) {
+  async getMaterialById(req, res) {
     try {
-      const trolly = await Trolly.findOne({
-        where: { trolley_id: req.params.id },
+      const material = await Material.findOne({
+        where: { material_id: req.params.id },
         // include: [{ model: StoreLocation, as: 'currentLocation' }]
       });
 
-      if (!trolly) {
+      if (!material) {
         return res.status(404).json({
           success: false,
-          message: 'trolly not found'
+          message: 'material not found'
         });
       }
 
       res.status(200).json({
         success: true,
-        data: trolly
+        data: material
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Failed to retrieve trolly',
+        message: 'Failed to retrieve material',
         error: error.message
       });
     }
   }
 
   /**
-   * Create new trolly
+   * Create new material
    */
-  async createTrolly(req, res) {
+  async createMaterial(req, res) {
     try {
-      const trolly = await Trolly.create(req.body);
+      const material = await Material.create(req.body);
 
       res.status(201).json({
         success: true,
-        message: 'trolly created successfully',
-        data: trolly
+        message: 'material created successfully',
+        data: material
       });
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: 'Failed to create trolly',
+        message: 'Failed to create material',
         error: error.message
       });
     }
   }
 
   /**
-   * Update trolly
+   * Update material
    */
-  async updateTrolly(req, res) {
+  async updateMaterial(req, res) {
     try {
-      const trolly = await Trolly.findOne({ where: { trolley_id: req.params.id } });
+      const material = await Material.findOne({ where: { material_id: req.params.id } });
 
-      if (!trolly) {
+      if (!material) {
         return res.status(404).json({
           success: false,
-          message: 'Trolly not found'
+          message: 'Material not found'
         });
       }
 
-      await trolly.update(req.body);
+      await material.update(req.body);
 
       res.status(200).json({
         success: true,
-        message: 'Trolly updated successfully',
-        data: trolly
+        message: 'Material updated successfully',
+        data: material
       });
     } catch (error) {
       res.status(400).json({
         success: false,
-        message: 'Failed to update trolly',
+        message: 'Failed to update material',
         error: error.message
       });
     }
   }
 
   /**
-   * Delete trolly
+   * Delete material
    */
-  async deleteTrolly(req, res) {
+  async deleteMaterial(req, res) {
     try {
-      const trolly = await Trolly.findOne({ where: { trolley_id: req.params.id } });
+      const material = await Material.findOne({ where: { material_id: req.params.id } });
 
-      if (!trolly) {
+      if (!material) {
         return res.status(404).json({
           success: false,
-          message: 'Trolly not found'
+          message: 'Material not found'
         });
       }
 
-      await trolly.destroy();
+      await material.destroy();
 
       res.status(200).json({
         success: true,
-        message: 'Trolly deleted successfully'
+        message: 'Material deleted successfully'
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: 'Failed to delete trolly',
+        message: 'Failed to delete material',
         error: error.message
       });
     }
   }
 }
 
-module.exports = new TrollyController();
+module.exports = new MaterialController();

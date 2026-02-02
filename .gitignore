@@ -10,8 +10,8 @@ node_modules/
 package-lock.json
 
 # Environment
-.env
-.env.local
-.env.development
-.env.production
-.env.test
+# .env
+# .env.local
+# .env.development
+# .env.production
+# .env.test

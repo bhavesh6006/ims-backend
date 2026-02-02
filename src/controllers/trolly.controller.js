@@ -66,6 +66,36 @@ class TrollyController {
   }
 
   /**
+   * Get trolly by Code
+   */
+  async getTrollyByCode(req, res) {
+    try {
+      const trolly = await Trolly.findOne({
+        where: { trolley_code: req.params.trollyCode },
+        // include: [{ model: StoreLocation, as: 'currentLocation' }]
+      });
+
+      if (!trolly) {
+        return res.status(404).json({
+          success: false,
+          message: 'trolly not found'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: trolly
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve trolly',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Create new trolly
    */
   async createTrolly(req, res) {

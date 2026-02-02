@@ -10,36 +10,20 @@ router.get('/', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// **** TROLLY ROUTES ****
-// Get all trollies
+// Trollies Routes
 router.get('/trollies', trollyController.getAllTrollies);
-
-// Get trolly by ID
+router.get('/trollies/scan/:trollyCode', trollyController.getTrollyByCode);
 router.get('/trollies/:id', trollyController.getTrollyById);
-
-// Create trolly
 router.post('/trollies/', trollyController.createTrolly);
-
-// Update trolly
 router.put('/trollies/:id', trollyController.updateTrolly);
-
-// Delete trolly
 router.delete('/trollies/:id', trollyController.deleteTrolly);
 
 // **** MATERIAL ROUTES ****
-// Get all materials
+// Materials Routes
 router.get('/materials', materialController.getAllMaterials);
-
-// Get material by ID
 router.get('/materials/:id', materialController.getMaterialById);
-
-// Create material
 router.post('/materials/', materialController.createMaterial);
-
-// Update material
 router.put('/materials/:id', materialController.updateMaterial);
-
-// Delete material
 router.delete('/materials/:id', materialController.deleteMaterial);
 
 // User routes

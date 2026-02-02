@@ -18,7 +18,6 @@ router.post('/trollies/', trollyController.createTrolly);
 router.put('/trollies/:id', trollyController.updateTrolly);
 router.delete('/trollies/:id', trollyController.deleteTrolly);
 
-// **** MATERIAL ROUTES ****
 // Materials Routes
 router.get('/materials', materialController.getAllMaterials);
 router.get('/materials/:id', materialController.getMaterialById);

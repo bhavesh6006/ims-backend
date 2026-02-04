@@ -18,6 +18,10 @@ const Trolly = sequelize.define('Trolly', {
     allowNull: false,
     comment: 'Type of trolley/container'
   },
+  trolley_image: {
+    type: DataTypes.TEXT,
+    comment: 'Image in base64 format for trolley'
+  },
   barcode: {
     type: DataTypes.STRING(100),
     unique: true,

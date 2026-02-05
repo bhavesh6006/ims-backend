@@ -13,10 +13,14 @@ const Trolly = sequelize.define('Trolly', {
     unique: true,
     comment: 'Trolley Code'
   },
-  trolley_type: {
-    type: DataTypes.ENUM('bin', 'rack', 'pallet', 'cage', 'custom'),
+  trolly_type_id: {
+    type: DataTypes.UUID,
     allowNull: false,
-    comment: 'Type of trolley/container'
+    references: {
+      model: 'trolly_type',
+      key: 'trolly_type_id'
+    },
+    comment: 'Foreign key reference to trolly_type'
   },
   trolley_image: {
     type: DataTypes.TEXT,
@@ -60,8 +64,17 @@ const Trolly = sequelize.define('Trolly', {
   tableName: 'trolley',
   indexes: [
     { fields: ['trolley_id'] },
-    { fields: ['trolley_code'] }
+    { fields: ['trolley_code'] },
+    { fields: ['trolly_type_id'] }
   ]
 });
+
+// Association with TrollyType
+Trolly.associate = (models) => {
+  Trolly.belongsTo(models.TrollyType, {
+    foreignKey: 'trolly_type_id',
+    as: 'trollyType'
+  });
+};
 
 module.exports = Trolly;

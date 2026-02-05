@@ -1,4 +1,6 @@
 const Material  = require('../models/material.model');
+const MaterialType = require('../models/materialType.model');
+const SubtoolPosition = require('../models/subtoolPosition.model');
 // StoreLocation
 
 
@@ -12,12 +14,15 @@ class MaterialController {
       const whereClause = {};
 
       if (status) whereClause.status = status;
-      if (type) whereClause.material_type = type;
+      if (type) whereClause.material_type_id = type;
       if (location) whereClause.current_location_id = location;
 
       const materials = await Material.findAll({
         where: whereClause,
-        // include: [{ model: StoreLocation, as: 'currentLocation' }],
+        // include: [
+        //   { model: MaterialType, as: 'materialType' },
+        //   { model: SubtoolPosition, as: 'subtoolPosition' }
+        // ],
         order: [['created_at', 'DESC']]
       });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const trollyController = require('./controllers/trolly.controller');
+const trollyTypeController = require('./controllers/trollyType.controller');
 const materialController = require('./controllers/material.controller');
 const materialTypeController = require('./controllers/materialType.controller');
 const subtoolPositionController = require('./controllers/subtoolPosition.controller');
@@ -19,6 +20,13 @@ router.get('/trollies/:id', trollyController.getTrollyById);
 router.post('/trollies/', trollyController.createTrolly);
 router.put('/trollies/:id', trollyController.updateTrolly);
 router.delete('/trollies/:id', trollyController.deleteTrolly);
+
+// Trolly Type Routes
+router.get('/trolly-types', trollyTypeController.getAllTrollyTypes);
+router.get('/trolly-types/:id', trollyTypeController.getTrollyTypeById);
+router.post('/trolly-types', trollyTypeController.createTrollyType);
+router.put('/trolly-types/:id', trollyTypeController.updateTrollyType);
+router.delete('/trolly-types/:id', trollyTypeController.deleteTrollyType);
 
 // Materials Routes
 router.get('/materials', materialController.getAllMaterials);

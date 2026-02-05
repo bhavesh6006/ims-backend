@@ -9,7 +9,7 @@ CREATE TYPE trolley_load_type AS ENUM ('FULL', 'PARTIAL');
 CREATE TABLE trolley (
     trolley_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trolley_code      VARCHAR(50) UNIQUE NOT NULL,
-    trolley_type      VARCHAR(50) NOT NULL,
+    trolly_type_id    UUID REFERENCES trolly_type(trolly_type_id),
     trolley_image     TEXT,
     barcode           VARCHAR(100),
     qr_code            VARCHAR(100),
@@ -23,19 +23,27 @@ CREATE TABLE trolley (
     updated_at        TIMESTAMP DEFAULT now()
 );
 
+CREATE TABLE trolly_type (
+    trolly_type_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trolly_type         VARCHAR(100),
+    created_at          TIMESTAMP DEFAULT now(),
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 3. Material Master
 CREATE TABLE material (
-    material_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    material_code     VARCHAR(50) UNIQUE NOT NULL,
-    material_name     VARCHAR(100) NOT NULL,
-    material_type     VARCHAR(50) NOT NULL,
-    length_mm         NUMERIC(10,2),
-    width_mm          NUMERIC(10,2),
-    height_mm         NUMERIC(10,2),
-    weight_kg         NUMERIC(10,3),
-    status             status_enum NOT NULL DEFAULT 'ACTIVE',
-    created_at        TIMESTAMP DEFAULT now(),
-    updated_at        TIMESTAMP DEFAULT now()
+    material_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    material_code       VARCHAR(50) UNIQUE NOT NULL,
+    material_name       VARCHAR(100) NOT NULL,
+    material_type_id    UUID REFERENCES material_type(material_type_id),
+    subtool_position_id UUID REFERENCES subtool_position(subtool_position_id),
+    length_mm           NUMERIC(10,2),
+    width_mm            NUMERIC(10,2),
+    height_mm           NUMERIC(10,2),
+    weight_kg           NUMERIC(10,3),
+    status              status_enum NOT NULL DEFAULT 'ACTIVE',
+    created_at          TIMESTAMP DEFAULT now(),
+    updated_at          TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE material_type (

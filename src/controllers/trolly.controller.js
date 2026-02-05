@@ -1,4 +1,5 @@
 const Trolly  = require('../models/trolly.model');
+const TrollyType = require('../models/trollyType.model');
 // StoreLocation
 
 
@@ -12,12 +13,12 @@ class TrollyController {
       const whereClause = {};
 
       if (status) whereClause.status = status;
-      if (type) whereClause.trolly_type = type;
+      if (type) whereClause.trolly_type_id = type;
       if (location) whereClause.current_location_id = location;
 
       const trollies = await Trolly.findAll({
         where: whereClause,
-        // include: [{ model: StoreLocation, as: 'currentLocation' }],
+        // include: [{ model: TrollyType, as: 'trollyType' }],
         order: [['created_at', 'DESC']]
       });
 
@@ -42,7 +43,7 @@ class TrollyController {
     try {
       const trolly = await Trolly.findOne({
         where: { trolley_id: req.params.id },
-        // include: [{ model: StoreLocation, as: 'currentLocation' }]
+        // include: [{ model: TrollyType, as: 'trollyType' }]
       });
 
       if (!trolly) {
@@ -72,7 +73,7 @@ class TrollyController {
     try {
       const trolly = await Trolly.findOne({
         where: { trolley_code: req.params.trollyCode },
-        // include: [{ model: StoreLocation, as: 'currentLocation' }]
+        // include: [{ model: TrollyType, as: 'trollyType' }]
       });
 
       if (!trolly) {

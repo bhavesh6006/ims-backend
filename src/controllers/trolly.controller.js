@@ -18,14 +18,28 @@ class TrollyController {
 
       const trollies = await Trolly.findAll({
         where: whereClause,
-        // include: [{ model: TrollyType, as: 'trollyType' }],
+        raw: true,
         order: [['created_at', 'DESC']]
       });
 
+      // Fetch trolly types and map them
+      const transformedTrollies = await Promise.all(
+        trollies.map(async (trolly) => {
+          const trollyTypeData = await TrollyType.findOne({
+            where: { trolly_type_id: trolly.trolly_type_id },
+            raw: true
+          });
+          return {
+            ...trolly,
+            trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null
+          };
+        })
+      );
+
       res.status(200).json({
         success: true,
-        count: trollies.length,
-        data: trollies
+        count: transformedTrollies.length,
+        data: transformedTrollies
       });
     } catch (error) {
       res.status(500).json({
@@ -43,7 +57,7 @@ class TrollyController {
     try {
       const trolly = await Trolly.findOne({
         where: { trolley_id: req.params.id },
-        // include: [{ model: TrollyType, as: 'trollyType' }]
+        raw: true
       });
 
       if (!trolly) {
@@ -53,9 +67,20 @@ class TrollyController {
         });
       }
 
+      // Fetch trolly type
+      const trollyTypeData = await TrollyType.findOne({
+        where: { trolly_type_id: trolly.trolly_type_id },
+        raw: true
+      });
+
+      const transformedTrolly = {
+        ...trolly,
+        trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null
+      };
+
       res.status(200).json({
         success: true,
-        data: trolly
+        data: transformedTrolly
       });
     } catch (error) {
       res.status(500).json({
@@ -73,7 +98,7 @@ class TrollyController {
     try {
       const trolly = await Trolly.findOne({
         where: { trolley_code: req.params.trollyCode },
-        // include: [{ model: TrollyType, as: 'trollyType' }]
+        raw: true
       });
 
       if (!trolly) {
@@ -83,9 +108,20 @@ class TrollyController {
         });
       }
 
+      // Fetch trolly type
+      const trollyTypeData = await TrollyType.findOne({
+        where: { trolly_type_id: trolly.trolly_type_id },
+        raw: true
+      });
+
+      const transformedTrolly = {
+        ...trolly,
+        trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null
+      };
+
       res.status(200).json({
         success: true,
-        data: trolly
+        data: transformedTrolly
       });
     } catch (error) {
       res.status(500).json({

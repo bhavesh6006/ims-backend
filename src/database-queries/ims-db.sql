@@ -62,25 +62,17 @@ CREATE TABLE subtool_position (
 
 -- 4. Trolley–Material Mapping (Capacity Rules)
 CREATE TABLE trolley_material_mapping (
-    mapping_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trolley_type      VARCHAR(50) NOT NULL,
-    material_type     VARCHAR(50) NOT NULL,
-    material_code     VARCHAR(50) NOT NULL,
-    trolley_code      VARCHAR(50) NOT NULL,
-    max_quantity      INTEGER NOT NULL CHECK (max_quantity > 0),
-    effective_from    DATE NOT NULL,
-    effective_to      DATE,
-    status             status_enum NOT NULL DEFAULT 'ACTIVE',
-    version_no        INTEGER NOT NULL DEFAULT 1,
-    created_at        TIMESTAMP DEFAULT now(),
+    mapping_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trolley_type_id     UUID REFERENCES trolly_type(trolly_type_id),
+    material_id         UUID REFERENCES material(material_id),
+    max_quantity        INTEGER NOT NULL CHECK (max_quantity > 0),
+    effective_from      DATE,
+    effective_to        DATE,
+    notes               TEXT,
+    status              status_enum NOT NULL DEFAULT 'ACTIVE',
+    version_no          INTEGER NOT NULL DEFAULT 1,
+    created_at          TIMESTAMP DEFAULT now(),
     UNIQUE (trolley_type, material_type, version_no)
-);
--- Optional Position-wise Capacity
-CREATE TABLE trolley_material_position_capacity (
-    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mapping_id        UUID REFERENCES trolley_material_mapping(mapping_id),
-    position_code     VARCHAR(30),
-    max_quantity      INTEGER NOT NULL
 );
 
 -- 5. Users & Roles (LDAP Integrated)

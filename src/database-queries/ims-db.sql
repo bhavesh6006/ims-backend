@@ -37,12 +37,19 @@ CREATE TABLE material (
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT now()
 );
--- Allowed Positions per Material
-CREATE TABLE material_position (
-    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    material_id       UUID REFERENCES material(material_id),
-    position_code     VARCHAR(30) NOT NULL,
-    UNIQUE(material_id, position_code)
+
+CREATE TABLE material_type (
+    material_type_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    material_type     VARCHAR(100),
+    created_at        TIMESTAMP DEFAULT now(),
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE subtool_position (
+    subtool_position_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subtool_position     VARCHAR(100),
+    created_at           TIMESTAMP DEFAULT now(),
+    updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 4. Trolley–Material Mapping (Capacity Rules)
@@ -129,13 +136,6 @@ CREATE TABLE antenna (
     tx_power_dbm      NUMERIC(5,2),
     coverage_desc     TEXT,
     status             antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
-    created_at        TIMESTAMP DEFAULT now(),
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE material_type (
-    material_type_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    material_type     VARCHAR(100),
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -3,6 +3,7 @@ const router = express.Router();
 const trollyController = require('./controllers/trolly.controller');
 const materialController = require('./controllers/material.controller');
 const materialTypeController = require('./controllers/materialType.controller');
+const subtoolPositionController = require('./controllers/subtoolPosition.controller');
 const UserController = require('./controllers/user.controller');
 const UserRoleController = require('./controllers/userRole.controller');
 const UserRoleMapController = require('./controllers/userRoleMap.controller');
@@ -32,6 +33,13 @@ router.get('/material-types/:id', materialTypeController.getMaterialTypeById);
 router.post('/material-types', materialTypeController.createMaterialType);
 router.put('/material-types/:id', materialTypeController.updateMaterialType);
 router.delete('/material-types/:id', materialTypeController.deleteMaterialType);
+
+// Subtool Position Routes
+router.get('/subtool-positions', subtoolPositionController.getAllSubtoolPositions);
+router.get('/subtool-positions/:id', subtoolPositionController.getSubtoolPositionById);
+router.post('/subtool-positions', subtoolPositionController.createSubtoolPosition);
+router.put('/subtool-positions/:id', subtoolPositionController.updateSubtoolPosition);
+router.delete('/subtool-positions/:id', subtoolPositionController.deleteSubtoolPosition);
 
 // User routes
 router.get('/users', UserController.getAllUsers);

@@ -129,8 +129,17 @@ CREATE TABLE antenna (
     tx_power_dbm      NUMERIC(5,2),
     coverage_desc     TEXT,
     status             antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
-    created_at        TIMESTAMP DEFAULT now()
+    created_at        TIMESTAMP DEFAULT now(),
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE material_type (
+    material_type_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    material_type     VARCHAR(100),
+    created_at        TIMESTAMP DEFAULT now(),
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Antenna–Store Mapping
 CREATE TABLE store_antenna_map (
     store_location_id UUID REFERENCES store_location(store_location_id),

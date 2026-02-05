@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const trollyController = require('./controllers/trolly.controller');
 const materialController = require('./controllers/material.controller');
+const materialTypeController = require('./controllers/materialType.controller');
 const UserController = require('./controllers/user.controller');
 const UserRoleController = require('./controllers/userRole.controller');
 const UserRoleMapController = require('./controllers/userRoleMap.controller');
@@ -24,6 +25,13 @@ router.get('/materials/:id', materialController.getMaterialById);
 router.post('/materials/', materialController.createMaterial);
 router.put('/materials/:id', materialController.updateMaterial);
 router.delete('/materials/:id', materialController.deleteMaterial);
+
+// Material Type Routes
+router.get('/material-types', materialTypeController.getAllMaterialTypes);
+router.get('/material-types/:id', materialTypeController.getMaterialTypeById);
+router.post('/material-types', materialTypeController.createMaterialType);
+router.put('/material-types/:id', materialTypeController.updateMaterialType);
+router.delete('/material-types/:id', materialTypeController.deleteMaterialType);
 
 // User routes
 router.get('/users', UserController.getAllUsers);

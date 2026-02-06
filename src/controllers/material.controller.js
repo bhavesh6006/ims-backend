@@ -1,8 +1,4 @@
-const Material  = require('../models/material.model');
-const MaterialType = require('../models/materialType.model');
-const SubtoolPosition = require('../models/subtoolPosition.model');
-// StoreLocation
-
+const { Material, MaterialType, SubtoolPosition } = require('../models');
 
 class MaterialController {
   /**
@@ -19,17 +15,41 @@ class MaterialController {
 
       const materials = await Material.findAll({
         where: whereClause,
-        // include: [
-        //   { model: MaterialType, as: 'materialType' },
-        //   { model: SubtoolPosition, as: 'subtoolPosition' }
-        // ],
+        include: [
+          { 
+            model: MaterialType, 
+            as: 'materialType',
+            attributes: ['material_type_id', 'material_type']
+          }
+        ],
         order: [['created_at', 'DESC']]
       });
 
+      // Manually fetch and attach subtool positions for each material
+      const materialsWithPositions = await Promise.all(
+        materials.map(async (material) => {
+          const materialJson = material.toJSON();
+          
+          if (materialJson.subtool_position_id && materialJson.subtool_position_id.length > 0) {
+            const positions = await SubtoolPosition.findAll({
+              where: {
+                subtool_position_id: materialJson.subtool_position_id
+              },
+              attributes: ['subtool_position_id', 'subtool_position']
+            });
+            materialJson.subtoolPositions = positions;
+          } else {
+            materialJson.subtoolPositions = [];
+          }
+          
+          return materialJson;
+        })
+      );
+
       res.status(200).json({
         success: true,
-        count: materials.length,
-        data: materials
+        count: materialsWithPositions.length,
+        data: materialsWithPositions
       });
     } catch (error) {
       res.status(500).json({
@@ -47,7 +67,13 @@ class MaterialController {
     try {
       const material = await Material.findOne({
         where: { material_id: req.params.id },
-        // include: [{ model: StoreLocation, as: 'currentLocation' }]
+        include: [
+          { 
+            model: MaterialType, 
+            as: 'materialType',
+            attributes: ['material_type_id', 'material_type']
+          }
+        ]
       });
 
       if (!material) {
@@ -57,9 +83,24 @@ class MaterialController {
         });
       }
 
+      const materialJson = material.toJSON();
+      
+      // Fetch subtool positions if they exist
+      if (materialJson.subtool_position_id && materialJson.subtool_position_id.length > 0) {
+        const positions = await SubtoolPosition.findAll({
+          where: {
+            subtool_position_id: materialJson.subtool_position_id
+          },
+          attributes: ['subtool_position_id', 'subtool_position']
+        });
+        materialJson.subtoolPositions = positions;
+      } else {
+        materialJson.subtoolPositions = [];
+      }
+
       res.status(200).json({
         success: true,
-        data: material
+        data: materialJson
       });
     } catch (error) {
       res.status(500).json({

@@ -28,25 +28,21 @@ const Material = sequelize.define('Material', {
     comment: 'Foreign key reference to material_type'
   },
   subtool_position_id: {
-    type: DataTypes.UUID,
+    type: DataTypes.ARRAY(DataTypes.UUID),
     allowNull: true,
-    references: {
-      model: 'subtool_position',
-      key: 'subtool_position_id'
-    },
-    comment: 'Foreign key reference to subtool_position'
+    comment: 'Array of subtool position IDs'
   },
   length_mm: {
     type: DataTypes.DECIMAL(10, 2),
-    comment: 'Length in cm'
+    comment: 'Length in mm'
   },
   width_mm: {
     type: DataTypes.DECIMAL(10, 2),
-    comment: 'Width in cm'
+    comment: 'Width in mm'
   },
   height_mm: {
     type: DataTypes.DECIMAL(10, 2),
-    comment: 'Height in cm'
+    comment: 'Height in mm'
   },
   weight_kg: {
     type: DataTypes.DECIMAL(10, 3),
@@ -58,24 +54,14 @@ const Material = sequelize.define('Material', {
   },
 }, {
   tableName: 'material',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
   indexes: [
     { fields: ['material_id'] },
     { fields: ['material_code'] },
-    { fields: ['material_type_id'] },
-    { fields: ['subtool_position_id'] }
+    { fields: ['material_type_id'] }
   ]
 });
-
-// Associations with MaterialType and SubtoolPosition
-Material.associate = (models) => {
-  Material.belongsTo(models.MaterialType, {
-    foreignKey: 'material_type_id',
-    as: 'materialType'
-  });
-  Material.belongsTo(models.SubtoolPosition, {
-    foreignKey: 'subtool_position_id',
-    as: 'subtoolPosition'
-  });
-};
 
 module.exports = Material;

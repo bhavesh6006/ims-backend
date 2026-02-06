@@ -36,7 +36,7 @@ CREATE TABLE material (
     material_code       VARCHAR(50) UNIQUE NOT NULL,
     material_name       VARCHAR(100) NOT NULL,
     material_type_id    UUID REFERENCES material_type(material_type_id),
-    subtool_position_id UUID REFERENCES subtool_position(subtool_position_id),
+    subtool_position_id UUID[],  -- Array of subtool position IDs (no FK, validated via trigger)
     length_mm           NUMERIC(10,2),
     width_mm            NUMERIC(10,2),
     height_mm           NUMERIC(10,2),

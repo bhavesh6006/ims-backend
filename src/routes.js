@@ -8,6 +8,7 @@ const subtoolPositionController = require('./controllers/subtoolPosition.control
 const UserController = require('./controllers/user.controller');
 const UserRoleController = require('./controllers/userRole.controller');
 const UserRoleMapController = require('./controllers/userRoleMap.controller');
+const trolleyMaterialMappingController = require('./controllers/trolleyMaterialMapping.controller');
 
 router.get('/', (req, res) => {
   res.status(200).json({ status: 'OK' });
@@ -67,5 +68,13 @@ router.get('/user-role-mappings/:userId', UserRoleMapController.getMappingByUser
 router.post('/user-role-mappings', UserRoleMapController.createMapping);
 router.delete('/user-role-mappings/:userId', UserRoleMapController.deleteMappingByUserId);
 router.put('/user-role-mappings/:userId', UserRoleMapController.updateMapping);
+
+// Trolley-Material Mapping Routes
+router.post('/trolley-material-mapping', trolleyMaterialMappingController.createMapping);
+router.get('/trolley-material-mapping', trolleyMaterialMappingController.getAllMappings);
+router.get('/trolley-material-mapping/trolley-type/:trolleyTypeId', trolleyMaterialMappingController.getMappingsByTrolleyType);
+router.get('/trolley-material-mapping/:mappingId', trolleyMaterialMappingController.getMappingById);
+router.put('/trolley-material-mapping/:trolleyTypeId', trolleyMaterialMappingController.editMapping);
+router.delete('/trolley-material-mapping/:mappingId', trolleyMaterialMappingController.deleteMapping);
 
 module.exports = router;

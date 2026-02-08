@@ -63,8 +63,8 @@ CREATE TABLE subtool_position (
 -- 4. Trolley–Material Mapping (Capacity Rules)
 CREATE TABLE trolley_material_mapping (
     mapping_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trolley_type_id     UUID REFERENCES trolly_type(trolly_type_id),
-    material_id         UUID REFERENCES material(material_id),
+    trolley_type_id     UUID NOT NULL REFERENCES trolly_type(trolly_type_id),
+    material_id         UUID NOT NULL REFERENCES material(material_id),
     max_quantity        INTEGER NOT NULL CHECK (max_quantity > 0),
     effective_from      DATE,
     effective_to        DATE,
@@ -72,8 +72,39 @@ CREATE TABLE trolley_material_mapping (
     status              status_enum NOT NULL DEFAULT 'ACTIVE',
     version_no          INTEGER NOT NULL DEFAULT 1,
     created_at          TIMESTAMP DEFAULT now(),
-    UNIQUE (trolley_type, material_type, version_no)
+    updated_at          TIMESTAMP DEFAULT now(),
+    created_by          UUID REFERENCES app_user(user_id),
+    updated_by          UUID REFERENCES app_user(user_id),
+    UNIQUE (trolley_type_id, material_id, version_no)
 );
+
+-- Create indexes for faster lookups
+CREATE INDEX idx_trolley_material_mapping_trolley_type ON trolley_material_mapping(trolley_type_id);
+CREATE INDEX idx_trolley_material_mapping_material ON trolley_material_mapping(material_id);
+CREATE INDEX idx_trolley_material_mapping_status ON trolley_material_mapping(status);
+CREATE INDEX idx_trolley_material_mapping_version ON trolley_material_mapping(version_no);
+
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_trolley_material_mapping_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trolley_material_mapping_updated_at_trigger
+    BEFORE UPDATE ON trolley_material_mapping
+    FOR EACH ROW
+    EXECUTE FUNCTION update_trolley_material_mapping_updated_at();
+
+-- Comments for documentation
+COMMENT ON TABLE trolley_material_mapping IS 'Maps trolley types to materials with capacity rules';
+COMMENT ON COLUMN trolley_material_mapping.trolley_type_id IS 'Reference to trolly_type table';
+COMMENT ON COLUMN trolley_material_mapping.material_id IS 'Reference to material table';
+COMMENT ON COLUMN trolley_material_mapping.max_quantity IS 'Maximum quantity of material allowed in this trolley type';
+COMMENT ON COLUMN trolley_material_mapping.version_no IS 'Version number for tracking mapping history';
+COMMENT ON COLUMN trolley_material_mapping.status IS 'ACTIVE or INACTIVE status';
 
 -- 5. Users & Roles (LDAP Integrated)
 CREATE TABLE app_role (

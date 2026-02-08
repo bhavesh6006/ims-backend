@@ -260,6 +260,15 @@ exports.getMappingById = async (req, res) => {
   try {
     const { mappingId } = req.params;
 
+    // Validate that mappingId is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(mappingId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid mapping ID format. Must be a valid UUID.'
+      });
+    }
+
     const mapping = await TrolleyMaterialMapping.findByPk(mappingId, {
       include: [
         {
@@ -335,6 +344,66 @@ exports.getAllMappings = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching mappings',
+      error: error.message
+    });
+  }
+};
+
+// Get mapping by material_id and trolley_type_id
+exports.getMappingByMaterialAndTrolleyType = async (req, res) => {
+  try {
+    const { material_id, trolley_type_id } = req.query;
+
+    // Validate required parameters
+    if (!material_id || !trolley_type_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both material_id and trolley_type_id are required as query parameters'
+      });
+    }
+
+    const mapping = await TrolleyMaterialMapping.findOne({
+      where: {
+        material_id: material_id,
+        trolley_type_id: trolley_type_id,
+        status: 'ACTIVE'
+      },
+      include: [
+        {
+          model: Material,
+          as: 'material',
+          attributes: ['material_id', 'material_code', 'material_name'],
+          include: [{
+            model: MaterialType,
+            as: 'materialType',
+            attributes: ['material_type_id', 'material_type']
+          }]
+        },
+        {
+          model: TrollyType,
+          as: 'trolleyType',
+          attributes: ['trolly_type_id', 'trolly_type']
+        }
+      ]
+    });
+
+    if (!mapping) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active mapping found for the given material and trolley type'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: mapping
+    });
+
+  } catch (error) {
+    console.error('Error fetching mapping by material and trolley type:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching mapping',
       error: error.message
     });
   }

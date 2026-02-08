@@ -11,6 +11,14 @@ const UserController = require('./controllers/user.controller');
 const UserRoleController = require('./controllers/userRole.controller');
 const UserRoleMapController = require('./controllers/userRoleMap.controller');
 const trolleyMaterialMappingController = require('./controllers/trolleyMaterialMapping.controller');
+const materialStockController = require('./controllers/materialStock.controller');
+const workOrderController = require('./controllers/workOrder.controller');
+
+// Middleware to log which route is being matched
+router.use((req, res, next) => {
+  console.log(`Matched route: ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 router.get('/', (req, res) => {
   res.status(200).json({ status: 'OK' });
@@ -33,6 +41,7 @@ router.delete('/trolly-types/:id', trollyTypeController.deleteTrollyType);
 
 // Materials Routes
 router.get('/materials', materialController.getAllMaterials);
+router.get('/materials/code/:materialCode', materialController.getMaterialByCode); // Must be before /:id
 router.get('/materials/:id', materialController.getMaterialById);
 router.post('/materials/', materialController.createMaterial);
 router.put('/materials/:id', materialController.updateMaterial);
@@ -86,11 +95,44 @@ router.delete('/user-role-mappings/:userId', UserRoleMapController.deleteMapping
 router.put('/user-role-mappings/:userId', UserRoleMapController.updateMapping);
 
 // Trolley-Material Mapping Routes
+// IMPORTANT: Specific routes MUST come BEFORE parameterized routes
 router.post('/trolley-material-mapping', trolleyMaterialMappingController.createMapping);
-router.get('/trolley-material-mapping', trolleyMaterialMappingController.getAllMappings);
+
+// Specific search route - MUST be before any :param routes
+router.get('/trolley-material-mapping/by-material-and-type', trolleyMaterialMappingController.getMappingByMaterialAndTrolleyType);
+
+// Other specific routes
 router.get('/trolley-material-mapping/trolley-type/:trolleyTypeId', trolleyMaterialMappingController.getMappingsByTrolleyType);
+
+// Get all (no params)
+router.get('/trolley-material-mapping', trolleyMaterialMappingController.getAllMappings);
+
+// Generic :id routes MUST be LAST
 router.get('/trolley-material-mapping/:mappingId', trolleyMaterialMappingController.getMappingById);
 router.put('/trolley-material-mapping/:trolleyTypeId', trolleyMaterialMappingController.editMapping);
 router.delete('/trolley-material-mapping/:mappingId', trolleyMaterialMappingController.deleteMapping);
+
+// Material Stock Routes
+router.post('/material-stock', materialStockController.createMaterialStock);
+router.get('/material-stock', materialStockController.getAllMaterialStocks);
+router.get('/material-stock/material/:materialCode', materialStockController.getMaterialStocksByMaterialCode);
+router.get('/material-stock/trolley/:trolleyCode', materialStockController.getMaterialStocksByTrolleyCode);
+router.get('/material-stock/work-order/:workOrderNumber', materialStockController.getMaterialStocksByWorkOrder);
+router.get('/material-stock/summary/:materialCode', materialStockController.getStockSummaryByMaterial);
+router.get('/material-stock/:id', materialStockController.getMaterialStockById);
+router.put('/material-stock/:id/status', materialStockController.updateMaterialStockStatus);
+router.put('/material-stock/:id', materialStockController.updateMaterialStock);
+router.delete('/material-stock/:id', materialStockController.deleteMaterialStock);
+
+// Work Order Routes
+router.post('/work-orders', workOrderController.createWorkOrder);
+router.get('/work-orders', workOrderController.getAllWorkOrders);
+router.get('/work-orders/stats', workOrderController.getWorkOrderStats);
+router.get('/work-orders/number/:workOrderNumber', workOrderController.getWorkOrderByNumber);
+router.get('/work-orders/:id', workOrderController.getWorkOrderById);
+router.put('/work-orders/:id', workOrderController.updateWorkOrder);
+router.put('/work-orders/:id/status', workOrderController.updateWorkOrderStatus);
+router.put('/work-orders/:id/output-plan', workOrderController.updateOutputPlan);
+router.delete('/work-orders/:id', workOrderController.deleteWorkOrder);
 
 module.exports = router;

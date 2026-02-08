@@ -112,6 +112,59 @@ class MaterialController {
   }
 
   /**
+   * Get material by material code
+   */
+  async getMaterialByCode(req, res) {
+    try {
+      const { materialCode } = req.params;
+
+      const material = await Material.findOne({
+        where: { material_code: materialCode },
+        include: [
+          { 
+            model: MaterialType, 
+            as: 'materialType',
+            attributes: ['material_type_id', 'material_type']
+          }
+        ]
+      });
+
+      if (!material) {
+        return res.status(404).json({
+          success: false,
+          message: 'Material not found'
+        });
+      }
+
+      const materialJson = material.toJSON();
+      
+      // Fetch subtool positions if they exist
+      if (materialJson.subtool_position_id && materialJson.subtool_position_id.length > 0) {
+        const positions = await SubtoolPosition.findAll({
+          where: {
+            subtool_position_id: materialJson.subtool_position_id
+          },
+          attributes: ['subtool_position_id', 'subtool_position']
+        });
+        materialJson.subtoolPositions = positions;
+      } else {
+        materialJson.subtoolPositions = [];
+      }
+
+      res.status(200).json({
+        success: true,
+        data: materialJson
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve material',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Create new material
    */
   async createMaterial(req, res) {

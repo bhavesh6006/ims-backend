@@ -1,0 +1,415 @@
+const { WorkOrder } = require('../models');
+const { Op } = require('sequelize');
+
+// Create new work order
+exports.createWorkOrder = async (req, res) => {
+  try {
+    const {
+      work_order_number,
+      sr_no,
+      date,
+      tool,
+      sub_tool,
+      door_colour,
+      handle,
+      micom,
+      lock1,
+      disp_type,
+      input_plan,
+      output_plan,
+      status,
+      created_by
+    } = req.body;
+
+    // Validate required fields
+    if (!work_order_number || !sr_no || !date || !tool || !sub_tool || !input_plan) {
+      return res.status(400).json({
+        success: false,
+        message: 'work_order_number, sr_no, date, tool, sub_tool, and input_plan are required'
+      });
+    }
+
+    // Check if work order number already exists
+    const existingWorkOrder = await WorkOrder.findOne({ where: { work_order_number } });
+    if (existingWorkOrder) {
+      return res.status(409).json({
+        success: false,
+        message: 'Work order number already exists'
+      });
+    }
+
+    const workOrder = await WorkOrder.create({
+      work_order_number,
+      sr_no,
+      date,
+      tool,
+      sub_tool,
+      door_colour: door_colour || null,
+      handle: handle || null,
+      micom: micom || null,
+      lock1: lock1 || null,
+      disp_type: disp_type || null,
+      input_plan,
+      output_plan: output_plan || 0,
+      status: status || 'PENDING',
+      created_by: created_by || null
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Work order created successfully',
+      data: workOrder
+    });
+
+  } catch (error) {
+    console.error('Error creating work order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating work order',
+      error: error.message
+    });
+  }
+};
+
+// Get all work orders with filters and pagination
+exports.getAllWorkOrders = async (req, res) => {
+  try {
+    const {
+      work_order_number,
+      tool,
+      sub_tool,
+      status,
+      date_from,
+      date_to,
+      page = 1,
+      limit = 50
+    } = req.query;
+
+    const where = {};
+
+    if (work_order_number) {
+      where.work_order_number = { [Op.iLike]: `%${work_order_number}%` };
+    }
+    if (tool) {
+      where.tool = { [Op.iLike]: `%${tool}%` };
+    }
+    if (sub_tool) {
+      where.sub_tool = { [Op.iLike]: `%${sub_tool}%` };
+    }
+    if (status) {
+      where.status = status;
+    }
+    if (date_from && date_to) {
+      where.date = {
+        [Op.between]: [date_from, date_to]
+      };
+    } else if (date_from) {
+      where.date = { [Op.gte]: date_from };
+    } else if (date_to) {
+      where.date = { [Op.lte]: date_to };
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await WorkOrder.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['date', 'DESC'], ['sr_no', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / limit),
+        workOrders: rows
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching work orders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching work orders',
+      error: error.message
+    });
+  }
+};
+
+// Get work order by ID
+exports.getWorkOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const workOrder = await WorkOrder.findByPk(id);
+
+    if (!workOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work order not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: workOrder
+    });
+
+  } catch (error) {
+    console.error('Error fetching work order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching work order',
+      error: error.message
+    });
+  }
+};
+
+// Get work order by work order number
+exports.getWorkOrderByNumber = async (req, res) => {
+  try {
+    const { workOrderNumber } = req.params;
+
+    const workOrder = await WorkOrder.findOne({
+      where: { work_order_number: workOrderNumber }
+    });
+
+    if (!workOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work order not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: workOrder
+    });
+
+  } catch (error) {
+    console.error('Error fetching work order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching work order',
+      error: error.message
+    });
+  }
+};
+
+// Update work order
+exports.updateWorkOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      sr_no,
+      date,
+      tool,
+      sub_tool,
+      door_colour,
+      handle,
+      micom,
+      lock1,
+      disp_type,
+      input_plan,
+      output_plan,
+      status,
+      updated_by
+    } = req.body;
+
+    const workOrder = await WorkOrder.findByPk(id);
+
+    if (!workOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work order not found'
+      });
+    }
+
+    // Update only provided fields
+    if (sr_no !== undefined) workOrder.sr_no = sr_no;
+    if (date !== undefined) workOrder.date = date;
+    if (tool !== undefined) workOrder.tool = tool;
+    if (sub_tool !== undefined) workOrder.sub_tool = sub_tool;
+    if (door_colour !== undefined) workOrder.door_colour = door_colour;
+    if (handle !== undefined) workOrder.handle = handle;
+    if (micom !== undefined) workOrder.micom = micom;
+    if (lock1 !== undefined) workOrder.lock1 = lock1;
+    if (disp_type !== undefined) workOrder.disp_type = disp_type;
+    if (input_plan !== undefined) workOrder.input_plan = input_plan;
+    if (output_plan !== undefined) workOrder.output_plan = output_plan;
+    if (status !== undefined) workOrder.status = status;
+    if (updated_by !== undefined) workOrder.updated_by = updated_by;
+
+    await workOrder.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Work order updated successfully',
+      data: workOrder
+    });
+
+  } catch (error) {
+    console.error('Error updating work order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating work order',
+      error: error.message
+    });
+  }
+};
+
+// Update work order status
+exports.updateWorkOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, updated_by } = req.body;
+
+    if (!status || !['PENDING', 'IN_PROGRESS', 'CLOSED'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid status is required (PENDING, IN_PROGRESS, CLOSED)'
+      });
+    }
+
+    const workOrder = await WorkOrder.findByPk(id);
+
+    if (!workOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work order not found'
+      });
+    }
+
+    workOrder.status = status;
+    if (updated_by) workOrder.updated_by = updated_by;
+    await workOrder.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Work order status updated successfully',
+      data: workOrder
+    });
+
+  } catch (error) {
+    console.error('Error updating work order status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating status',
+      error: error.message
+    });
+  }
+};
+
+// Update output plan
+exports.updateOutputPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { output_plan, updated_by } = req.body;
+
+    if (output_plan === undefined || output_plan < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid output_plan is required'
+      });
+    }
+
+    const workOrder = await WorkOrder.findByPk(id);
+
+    if (!workOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work order not found'
+      });
+    }
+
+    workOrder.output_plan = output_plan;
+    
+    // Auto-update status based on output_plan
+    if (output_plan === 0) {
+      workOrder.status = 'PENDING';
+    } else if (output_plan < workOrder.input_plan) {
+      workOrder.status = 'IN_PROGRESS';
+    } else if (output_plan >= workOrder.input_plan) {
+      workOrder.status = 'CLOSED';
+    }
+
+    if (updated_by) workOrder.updated_by = updated_by;
+    await workOrder.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Output plan updated successfully',
+      data: workOrder
+    });
+
+  } catch (error) {
+    console.error('Error updating output plan:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating output plan',
+      error: error.message
+    });
+  }
+};
+
+// Delete work order
+exports.deleteWorkOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const workOrder = await WorkOrder.findByPk(id);
+
+    if (!workOrder) {
+      return res.status(404).json({
+        success: false,
+        message: 'Work order not found'
+      });
+    }
+
+    await workOrder.destroy();
+
+    res.status(200).json({
+      success: true,
+      message: 'Work order deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting work order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting work order',
+      error: error.message
+    });
+  }
+};
+
+// Get work order statistics
+exports.getWorkOrderStats = async (req, res) => {
+  try {
+    const stats = await WorkOrder.findAll({
+      attributes: [
+        'status',
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+        [sequelize.fn('SUM', sequelize.col('input_plan')), 'total_input'],
+        [sequelize.fn('SUM', sequelize.col('output_plan')), 'total_output']
+      ],
+      group: ['status']
+    });
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching work order stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching statistics',
+      error: error.message
+    });
+  }
+};

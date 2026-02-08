@@ -5,6 +5,8 @@ const SubtoolPosition = require('./subtoolPosition.model');
 const TrollyType = require('./trollyType.model');
 const TrolleyMaterialMapping = require('./trolleyMaterialMapping.model');
 const Antenna = require('./antenna.model');
+const StoreLocation = require('./storeLocation.model');
+const StoreLocationAntenna = require('./storeLocationAntenna.model');
 
 // Define all associations here
 Material.belongsTo(MaterialType, {
@@ -37,6 +39,38 @@ Material.hasMany(TrolleyMaterialMapping, {
   as: 'mappings'
 });
 
+// StoreLocation associations
+StoreLocation.belongsTo(Antenna, {
+  foreignKey: 'antenna_id',
+  as: 'antenna'
+});
+
+Antenna.hasMany(StoreLocation, {
+  foreignKey: 'antenna_id',
+  as: 'storeLocations'
+});
+
+// Mapping associations: store location <-> antenna (many)
+StoreLocation.hasMany(StoreLocationAntenna, {
+  foreignKey: 'store_location_id',
+  as: 'antennaMappings'
+});
+
+StoreLocationAntenna.belongsTo(StoreLocation, {
+  foreignKey: 'store_location_id',
+  as: 'storeLocation'
+});
+
+StoreLocationAntenna.belongsTo(Antenna, {
+  foreignKey: 'antenna_id',
+  as: 'antenna'
+});
+
+Antenna.hasMany(StoreLocationAntenna, {
+  foreignKey: 'antenna_id',
+  as: 'storeMappings'
+});
+
 // Export models
 module.exports = {
   sequelize,
@@ -44,6 +78,8 @@ module.exports = {
   MaterialType,
   SubtoolPosition,
   TrollyType,
-  TrolleyMaterialMapping
-  ,Antenna
+  TrolleyMaterialMapping,
+  Antenna,
+  StoreLocation,
+  StoreLocationAntenna
 };

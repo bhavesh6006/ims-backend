@@ -149,11 +149,57 @@ CREATE TABLE store_location (
     area_unit         VARCHAR(10),
     status            status_enum NOT NULL DEFAULT 'ACTIVE',
     remarks           TEXT,
-    movement_type     movement_type_enum NOT NULL,
-    antenna_id        UUID REFERENCES antenna(antenna_id),
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Mapping table: store_location_antenna supports multiple antennas and movement types per store location
+CREATE TABLE store_location_antenna (
+    mapping_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    store_location_id  UUID NOT NULL REFERENCES store_location(store_location_id),
+    antenna_id         UUID NOT NULL REFERENCES antenna(antenna_id),
+    movement_type      movement_type_enum NOT NULL,
+    status             status_enum NOT NULL DEFAULT 'ACTIVE',
+    created_at         TIMESTAMP DEFAULT now(),
+    updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for mapping table
+CREATE INDEX idx_store_location_antenna_store ON store_location_antenna(store_location_id);
+CREATE INDEX idx_store_location_antenna_antenna ON store_location_antenna(antenna_id);
+CREATE INDEX idx_store_location_antenna_status ON store_location_antenna(status);
+
+-- Trigger to update updated_at for mapping table
+CREATE OR REPLACE FUNCTION update_store_location_antenna_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER store_location_antenna_updated_at_trigger
+    BEFORE UPDATE ON store_location_antenna
+    FOR EACH ROW
+    EXECUTE FUNCTION update_store_location_antenna_updated_at();
+
+-- Create index for store_location status
+CREATE INDEX idx_store_location_status ON store_location(status);
+
+-- Trigger to update updated_at timestamp for store_location
+CREATE OR REPLACE FUNCTION update_store_location_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER store_location_updated_at_trigger
+    BEFORE UPDATE ON store_location
+    FOR EACH ROW
+    EXECUTE FUNCTION update_store_location_updated_at();
+
 
 -- 7. RFID / BLE Antenna Master
 CREATE TABLE antenna (

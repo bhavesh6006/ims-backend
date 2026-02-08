@@ -6,6 +6,7 @@ const materialController = require('./controllers/material.controller');
 const materialTypeController = require('./controllers/materialType.controller');
 const subtoolPositionController = require('./controllers/subtoolPosition.controller');
 const antennaController = require('./controllers/antenna.controller');
+const storeLocationController = require('./controllers/storeLocation.controller');
 const UserController = require('./controllers/user.controller');
 const UserRoleController = require('./controllers/userRole.controller');
 const UserRoleMapController = require('./controllers/userRoleMap.controller');
@@ -57,6 +58,13 @@ router.get('/antennas/:id', antennaController.getAntennaById);
 router.post('/antennas', antennaController.createAntenna);
 router.put('/antennas/:id', antennaController.updateAntenna);
 router.delete('/antennas/:id', antennaController.deleteAntenna);
+
+// Store Location Routes
+router.get('/store-locations', storeLocationController.getAllStoreLocations);
+router.get('/store-locations/:id', storeLocationController.getStoreLocationById);
+router.post('/store-locations', storeLocationController.createStoreLocation);
+router.put('/store-locations/:id', storeLocationController.updateStoreLocation);
+router.delete('/store-locations/:id', storeLocationController.deleteStoreLocation);
 
 // User routes
 router.get('/users', UserController.getAllUsers);

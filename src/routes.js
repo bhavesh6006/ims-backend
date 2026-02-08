@@ -5,6 +5,7 @@ const trollyTypeController = require('./controllers/trollyType.controller');
 const materialController = require('./controllers/material.controller');
 const materialTypeController = require('./controllers/materialType.controller');
 const subtoolPositionController = require('./controllers/subtoolPosition.controller');
+const antennaController = require('./controllers/antenna.controller');
 const UserController = require('./controllers/user.controller');
 const UserRoleController = require('./controllers/userRole.controller');
 const UserRoleMapController = require('./controllers/userRoleMap.controller');
@@ -49,6 +50,13 @@ router.get('/subtool-positions/:id', subtoolPositionController.getSubtoolPositio
 router.post('/subtool-positions', subtoolPositionController.createSubtoolPosition);
 router.put('/subtool-positions/:id', subtoolPositionController.updateSubtoolPosition);
 router.delete('/subtool-positions/:id', subtoolPositionController.deleteSubtoolPosition);
+
+// Antenna Routes
+router.get('/antennas', antennaController.getAllAntennas);
+router.get('/antennas/:id', antennaController.getAntennaById);
+router.post('/antennas', antennaController.createAntenna);
+router.put('/antennas/:id', antennaController.updateAntenna);
+router.delete('/antennas/:id', antennaController.deleteAntenna);
 
 // User routes
 router.get('/users', UserController.getAllUsers);

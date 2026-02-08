@@ -4,6 +4,7 @@ const MaterialType = require('./materialType.model');
 const SubtoolPosition = require('./subtoolPosition.model');
 const TrollyType = require('./trollyType.model');
 const TrolleyMaterialMapping = require('./trolleyMaterialMapping.model');
+const Antenna = require('./antenna.model');
 
 // Define all associations here
 Material.belongsTo(MaterialType, {
@@ -44,4 +45,5 @@ module.exports = {
   SubtoolPosition,
   TrollyType,
   TrolleyMaterialMapping
+  ,Antenna
 };

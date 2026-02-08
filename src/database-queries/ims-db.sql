@@ -3,6 +3,7 @@ CREATE TYPE status_enum AS ENUM ('ACTIVE', 'INACTIVE');
 CREATE TYPE antenna_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE');
 CREATE TYPE antenna_type_enum AS ENUM ('RFID', 'BLE');
 CREATE TYPE trolley_load_type AS ENUM ('FULL', 'PARTIAL');
+CREATE TYPE movement_type_enum AS ENUM ('IN', 'OUT');
 
 
 -- 2. Trolley / Container Master
@@ -143,12 +144,15 @@ CREATE TABLE store_location (
     store_name        VARCHAR(100),
     factory_name      VARCHAR(100),
     plant_name        VARCHAR(100),
-    hierarchy_level   INTEGER,
+    hierarchy_level   VARCHAR(100),
     total_area        NUMERIC(12,2),
     area_unit         VARCHAR(10),
-    status             status_enum NOT NULL DEFAULT 'ACTIVE',
+    status            status_enum NOT NULL DEFAULT 'ACTIVE',
     remarks           TEXT,
-    created_at        TIMESTAMP DEFAULT now()
+    movement_type     movement_type_enum NOT NULL,
+    antenna_id        UUID REFERENCES antenna(antenna_id),
+    created_at        TIMESTAMP DEFAULT now(),
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 7. RFID / BLE Antenna Master
@@ -166,7 +170,8 @@ CREATE TABLE antenna (
     mounting_type     VARCHAR(50),
     tx_power_dbm      NUMERIC(5,2),
     coverage_desc     TEXT,
-    status             antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
+    status            antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
+    remarks           TEXT,
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -35,7 +35,7 @@ class StoreLocationController {
   async createStoreLocation(req, res) {
     const transaction = await sequelize.transaction();
     try {
-      const { store_code, store_name, factory_name, plant_name, hierarchy_level, total_area, area_unit, movement_type, antenna_id, remarks, status, antenna_mappings } = req.body;
+      const { store_code, store_name, factory_name, plant_name, hierarchy_level, total_area, area_unit, remarks, status, antenna_mappings } = req.body;
       if (!store_code) return res.status(400).json({ success: false, message: 'store_code is required' });
 
       const existing = await StoreLocation.findOne({ where: { store_code }, transaction });

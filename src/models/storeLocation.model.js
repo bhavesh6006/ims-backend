@@ -38,18 +38,6 @@ const StoreLocation = sequelize.define('StoreLocation', {
   remarks: {
     type: DataTypes.TEXT
   },
-  movement_type: {
-    type: DataTypes.ENUM('IN','OUT'),
-    allowNull: false
-  },
-  antenna_id: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'antenna',
-      key: 'antenna_id'
-    }
-  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -66,9 +54,7 @@ const StoreLocation = sequelize.define('StoreLocation', {
   indexes: [
     { fields: ['store_location_id'] },
     { fields: ['store_code'] },
-    { fields: ['status'] },
-    { fields: ['antenna_id'] },
-    { fields: ['movement_type'] }
+    { fields: ['status'] }
   ]
 });
 

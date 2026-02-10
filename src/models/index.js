@@ -41,17 +41,6 @@ Material.hasMany(TrolleyMaterialMapping, {
   as: 'mappings'
 });
 
-// StoreLocation associations
-StoreLocation.belongsTo(Antenna, {
-  foreignKey: 'antenna_id',
-  as: 'antenna'
-});
-
-Antenna.hasMany(StoreLocation, {
-  foreignKey: 'antenna_id',
-  as: 'storeLocations'
-});
-
 // Mapping associations: store location <-> antenna (many)
 StoreLocation.hasMany(StoreLocationAntenna, {
   foreignKey: 'store_location_id',

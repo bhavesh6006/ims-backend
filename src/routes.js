@@ -63,6 +63,7 @@ router.delete('/subtool-positions/:id', subtoolPositionController.deleteSubtoolP
 
 // Antenna Routes
 router.get('/antennas', antennaController.getAllAntennas);
+router.get('/getUnmappedAntennas', antennaController.getUnmappedAntennas);
 router.get('/antennas/:id', antennaController.getAntennaById);
 router.post('/antennas', antennaController.createAntenna);
 router.put('/antennas/:id', antennaController.updateAntenna);

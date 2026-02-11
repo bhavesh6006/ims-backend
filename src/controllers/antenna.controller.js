@@ -1,4 +1,4 @@
-const { Antenna } = require('../models');
+const { Antenna, StoreLocationAntenna } = require('../models');
 
 class AntennaController {
   async getAllAntennas(req, res) {
@@ -9,6 +9,36 @@ class AntennaController {
       res.status(500).json({ success: false, message: 'Failed to fetch antennas', error: error.message });
     }
   }
+
+  async getUnmappedAntennas(req, res) {
+    try {
+      const antennas = await Antenna.findAll({
+        include: [
+          {
+            model: StoreLocationAntenna,
+            as: 'storeMappings',
+            required: false // LEFT JOIN
+          }
+        ],
+        where: {
+          status: 'ACTIVE',
+          '$storeMappings.antenna_id$': null  // No mapping exists
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        count: antennas.length,
+        data: antennas
+      });
+
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
 
   async getAntennaById(req, res) {
     try {

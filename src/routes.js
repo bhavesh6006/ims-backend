@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
 
 // Trollies Routes
 router.get('/trollies', trollyController.getAllTrollies);
-router.get('/trollies/scan/:trollyCode', trollyController.getTrollyByCode);
+router.get('/trollies/scan/:trollyQRCode', trollyController.getTrollyByCode);
 router.get('/trollies/:id', trollyController.getTrollyById);
 router.post('/trollies/', trollyController.createTrolly);
 router.put('/trollies/:id', trollyController.updateTrolly);

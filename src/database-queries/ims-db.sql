@@ -13,7 +13,7 @@ CREATE TABLE trolley (
     trolly_type_id    UUID REFERENCES trolly_type(trolly_type_id),
     trolley_image     TEXT,
     barcode           VARCHAR(100),
-    qr_code            VARCHAR(100),
+    qr_code           VARCHAR(100),
     length_mm         NUMERIC(10,2),
     width_mm          NUMERIC(10,2),
     height_mm         NUMERIC(10,2),
@@ -23,6 +23,15 @@ CREATE TABLE trolley (
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT now()
 );
+
+-- Add unique constraint for barcode
+CREATE UNIQUE INDEX unique_trolley_barcode 
+ON trolley (barcode) 
+WHERE barcode IS NOT NULL AND barcode <> '';
+
+CREATE UNIQUE INDEX unique_trolley_qr_code 
+ON trolley (qr_code) 
+WHERE qr_code IS NOT NULL AND qr_code <> '';
 
 CREATE TABLE trolly_type (
     trolly_type_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),

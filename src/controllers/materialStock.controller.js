@@ -210,7 +210,7 @@ exports.getMaterialStocksByWorkOrder = async (req, res) => {
     const { workOrderNumber } = req.params;
 
     const stocks = await MaterialStock.findAll({
-      where: { work_order_number: workOrderNumber },
+      where: { work_order_id: workOrderNumber },
       order: [['created_at', 'DESC']]
     });
 

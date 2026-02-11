@@ -231,14 +231,6 @@ CREATE TABLE antenna (
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Antenna–Store Mapping
-CREATE TABLE store_antenna_map (
-    store_location_id UUID REFERENCES store_location(store_location_id),
-    antenna_id        UUID REFERENCES antenna(antenna_id),
-    association_status status_enum NOT NULL DEFAULT 'ACTIVE',
-    PRIMARY KEY (store_location_id, antenna_id)
-);
-
 -- 8. Operator Loading / Trolley Transactions
 CREATE TABLE trolley_transaction (
     transaction_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -5,7 +5,7 @@ class StoreLocationController {
   async getAllStoreLocations(req, res) {
     try {
       const locations = await StoreLocation.findAll({
-        where: { status: 'ACTIVE' },
+        // where: { status: 'ACTIVE' },
         order: [['created_at', 'DESC']],
         include: [
           { model: StoreLocationAntenna, as: 'antennaMappings', where: { status: 'ACTIVE' }, required: false, include: [{ model: Antenna, as: 'antenna' }] }
@@ -85,11 +85,9 @@ class StoreLocationController {
       // Update base location fields
       await location.update(req.body, { transaction });
 
-      // Remove mappings (soft delete) by mapping_id array
+      // Remove mappings (hard delete) by mapping_id array
       if (Array.isArray(antenna_mappings_to_remove) && antenna_mappings_to_remove.length > 0) {
-        for (const mappingId of antenna_mappings_to_remove) {
-          await StoreLocationAntenna.update({ status: 'INACTIVE' }, { where: { mapping_id: mappingId }, transaction });
-        }
+        await StoreLocationAntenna.destroy({ where: { mapping_id: antenna_mappings_to_remove }, transaction });
       }
 
       // Update mappings
@@ -127,16 +125,24 @@ class StoreLocationController {
   }
 
   async deleteStoreLocation(req, res) {
+    const transaction = await sequelize.transaction();
     try {
-      const location = await StoreLocation.findOne({ where: { store_location_id: req.params.id } });
-      if (!location) return res.status(404).json({ success: false, message: 'Store location not found' });
+      const location = await StoreLocation.findOne({ where: { store_location_id: req.params.id }, transaction });
+      if (!location) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Store location not found' });
+      }
 
-      await location.update({ status: 'INACTIVE' });
-      // Mark associated mappings INACTIVE
-      await StoreLocationAntenna.update({ status: 'INACTIVE' }, { where: { store_location_id: location.store_location_id } });
-      const updated = await StoreLocation.findOne({ where: { store_location_id: req.params.id } });
-      res.status(200).json({ success: true, message: 'Store location marked INACTIVE', data: updated });
+      // Delete associated antenna mappings first
+      await StoreLocationAntenna.destroy({ where: { store_location_id: location.store_location_id }, transaction });
+      
+      // Delete the store location
+      await location.destroy({ transaction });
+      
+      await transaction.commit();
+      res.status(200).json({ success: true, message: 'Store location and its antenna mappings deleted successfully' });
     } catch (error) {
+      await transaction.rollback();
       res.status(500).json({ success: false, message: 'Failed to delete store location', error: error.message });
     }
   }

@@ -1,9 +1,10 @@
 const { Antenna, StoreLocationAntenna } = require('../models');
+const sequelize = require('../config/database');
 
 class AntennaController {
   async getAllAntennas(req, res) {
     try {
-      const antennas = await Antenna.findAll({ where: { status: 'ACTIVE' }, order: [['created_at', 'DESC']] });
+      const antennas = await Antenna.findAll({ order: [['created_at', 'DESC']] });
       res.status(200).json({ success: true, count: antennas.length, data: antennas });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to fetch antennas', error: error.message });
@@ -83,15 +84,24 @@ class AntennaController {
   }
 
   async deleteAntenna(req, res) {
+    const transaction = await sequelize.transaction();
     try {
-      const antenna = await Antenna.findOne({ where: { antenna_id: req.params.id } });
-      if (!antenna) return res.status(404).json({ success: false, message: 'Antenna not found' });
+      const antenna = await Antenna.findOne({ where: { antenna_id: req.params.id }, transaction });
+      if (!antenna) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Antenna not found' });
+      }
 
-      // Soft-delete: mark as INACTIVE
-      await antenna.update({ status: 'INACTIVE' });
-      const updated = await Antenna.findOne({ where: { antenna_id: req.params.id } });
-      res.status(200).json({ success: true, message: 'Antenna marked INACTIVE', data: updated });
+      // Delete associated store location mappings first
+      await StoreLocationAntenna.destroy({ where: { antenna_id: antenna.antenna_id }, transaction });
+      
+      // Delete the antenna
+      await antenna.destroy({ transaction });
+      
+      await transaction.commit();
+      res.status(200).json({ success: true, message: 'Antenna and its store mappings deleted successfully' });
     } catch (error) {
+      await transaction.rollback();
       res.status(500).json({ success: false, message: 'Failed to delete antenna', error: error.message });
     }
   }

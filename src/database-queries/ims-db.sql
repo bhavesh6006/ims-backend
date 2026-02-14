@@ -6,7 +6,66 @@ CREATE TYPE trolley_load_type AS ENUM ('FULL', 'PARTIAL');
 CREATE TYPE movement_type_enum AS ENUM ('IN', 'OUT');
 
 
--- 2. Trolley / Container Master
+-- 2. Trolley / Container Types
+CREATE TABLE trolly_type (
+    trolly_type_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trolly_type         VARCHAR(100),
+    created_at          TIMESTAMP DEFAULT now(),
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- New: Trolley Condition Master
+CREATE TABLE trolley_condition (
+    trolley_condition_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                 VARCHAR(100) NOT NULL,
+    description          TEXT
+);
+
+-- 3. Material Master supporting tables
+CREATE TABLE material_type (
+    material_type_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    material_type     VARCHAR(100),
+    created_at        TIMESTAMP DEFAULT now(),
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE subtool_position (
+    subtool_position_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    subtool_position     VARCHAR(100),
+    created_at           TIMESTAMP DEFAULT now(),
+    updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Users & Roles (LDAP Integrated)
+CREATE TABLE app_role (
+    role_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_name         VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE app_user (
+    user_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ldap_username     VARCHAR(100) UNIQUE NOT NULL,
+    display_name      VARCHAR(150),
+    email             VARCHAR(150),
+    is_active         BOOLEAN DEFAULT TRUE,
+    created_at        TIMESTAMP DEFAULT now()
+);
+
+CREATE TABLE user_role_map (
+    user_id           UUID REFERENCES app_user(user_id),
+    role_id           UUID REFERENCES app_role(role_id),
+    PRIMARY KEY (user_id, role_id)
+);
+
+CREATE TABLE user_activity_log (
+    log_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id           UUID REFERENCES app_user(user_id),
+    activity_type     VARCHAR(100),
+    activity_time     TIMESTAMP DEFAULT now(),
+    details           JSONB
+);
+
+-- 5. Trolley / Container Master (depends on trolly_type)
 CREATE TABLE trolley (
     trolley_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trolley_code      VARCHAR(50) UNIQUE NOT NULL,
@@ -33,14 +92,7 @@ CREATE UNIQUE INDEX unique_trolley_qr_code
 ON trolley (qr_code) 
 WHERE qr_code IS NOT NULL AND qr_code <> '';
 
-CREATE TABLE trolly_type (
-    trolly_type_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trolly_type         VARCHAR(100),
-    created_at          TIMESTAMP DEFAULT now(),
-    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 3. Material Master
+-- 6. Material Master (depends on material_type, subtool_position)
 CREATE TABLE material (
     material_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_code       VARCHAR(50) UNIQUE NOT NULL,
@@ -56,21 +108,7 @@ CREATE TABLE material (
     updated_at          TIMESTAMP DEFAULT now()
 );
 
-CREATE TABLE material_type (
-    material_type_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    material_type     VARCHAR(100),
-    created_at        TIMESTAMP DEFAULT now(),
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE subtool_position (
-    subtool_position_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    subtool_position     VARCHAR(100),
-    created_at           TIMESTAMP DEFAULT now(),
-    updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 4. Trolley–Material Mapping (Capacity Rules)
+-- 7. Trolley–Material Mapping (Capacity Rules) depends on trolly_type, material, app_user
 CREATE TABLE trolley_material_mapping (
     mapping_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trolley_type_id     UUID NOT NULL REFERENCES trolly_type(trolly_type_id),
@@ -94,7 +132,7 @@ CREATE INDEX idx_trolley_material_mapping_material ON trolley_material_mapping(m
 CREATE INDEX idx_trolley_material_mapping_status ON trolley_material_mapping(status);
 CREATE INDEX idx_trolley_material_mapping_version ON trolley_material_mapping(version_no);
 
--- Trigger to update updated_at timestamp
+-- Trigger to update updated_at timestamp for mapping
 CREATE OR REPLACE FUNCTION update_trolley_material_mapping_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -116,37 +154,28 @@ COMMENT ON COLUMN trolley_material_mapping.max_quantity IS 'Maximum quantity of 
 COMMENT ON COLUMN trolley_material_mapping.version_no IS 'Version number for tracking mapping history';
 COMMENT ON COLUMN trolley_material_mapping.status IS 'ACTIVE or INACTIVE status';
 
--- 5. Users & Roles (LDAP Integrated)
-CREATE TABLE app_role (
-    role_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_name         VARCHAR(50) UNIQUE NOT NULL
+-- 8. RFID / BLE Antenna Master
+CREATE TABLE antenna (
+    antenna_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    antenna_code      VARCHAR(50) UNIQUE NOT NULL,
+    antenna_name      VARCHAR(100),
+    antenna_type      antenna_type_enum NOT NULL,
+    frequency_range   VARCHAR(50),
+    gain_dbi          NUMERIC(5,2),
+    reader_id         VARCHAR(50),
+    reader_port       INTEGER,
+    antenna_role      VARCHAR(50),
+    orientation       VARCHAR(50),
+    mounting_type     VARCHAR(50),
+    tx_power_dbm      NUMERIC(5,2),
+    coverage_desc     TEXT,
+    status            antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
+    remarks           TEXT,
+    created_at        TIMESTAMP DEFAULT now(),
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE app_user (
-    user_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ldap_username     VARCHAR(100) UNIQUE NOT NULL,
-    display_name      VARCHAR(150),
-    email             VARCHAR(150),
-    is_active         BOOLEAN DEFAULT TRUE,
-    created_at        TIMESTAMP DEFAULT now()
-);
-
-CREATE TABLE user_role_map (
-    user_id           UUID REFERENCES app_user(user_id),
-    role_id           UUID REFERENCES app_role(role_id),
-    PRIMARY KEY (user_id, role_id)
-);
--- User Activity Audit
-CREATE TABLE user_activity_log (
-    log_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id           UUID REFERENCES app_user(user_id),
-    activity_type     VARCHAR(100),
-    activity_time     TIMESTAMP DEFAULT now(),
-    details           JSONB
-);
-
-
--- 6. Store Location Master
+-- 9. Store Location Master
 CREATE TABLE store_location (
     store_location_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_code        VARCHAR(50) UNIQUE NOT NULL,
@@ -209,47 +238,7 @@ CREATE TRIGGER store_location_updated_at_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_store_location_updated_at();
 
-
--- 7. RFID / BLE Antenna Master
-CREATE TABLE antenna (
-    antenna_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    antenna_code      VARCHAR(50) UNIQUE NOT NULL,
-    antenna_name      VARCHAR(100),
-    antenna_type      antenna_type_enum NOT NULL,
-    frequency_range   VARCHAR(50),
-    gain_dbi          NUMERIC(5,2),
-    reader_id         VARCHAR(50),
-    reader_port       INTEGER,
-    antenna_role      VARCHAR(50),
-    orientation       VARCHAR(50),
-    mounting_type     VARCHAR(50),
-    tx_power_dbm      NUMERIC(5,2),
-    coverage_desc     TEXT,
-    status            antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
-    remarks           TEXT,
-    created_at        TIMESTAMP DEFAULT now(),
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 8. Operator Loading / Trolley Transactions
-CREATE TABLE trolley_transaction (
-    transaction_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    trolley_id        UUID REFERENCES trolley(trolley_id),
-    work_order_no     VARCHAR(50),
-    load_type         trolley_load_type NOT NULL,
-    full_quantity     INTEGER,
-    loaded_quantity   INTEGER,
-    sfg_fg_type       VARCHAR(10),
-    created_by        UUID REFERENCES app_user(user_id),
-    created_at        TIMESTAMP DEFAULT now(),
-    CHECK (
-        (load_type = 'FULL' AND loaded_quantity IS NULL)
-        OR
-        (load_type = 'PARTIAL' AND loaded_quantity IS NOT NULL)
-    )
-);
-
---9. Work Order Table Schema
+--10. Work Order Table Schema
 CREATE TABLE work_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     work_order_number VARCHAR(50) UNIQUE NOT NULL,
@@ -277,7 +266,21 @@ CREATE INDEX idx_work_orders_date ON work_orders(date);
 CREATE INDEX idx_work_orders_sub_tool ON work_orders(sub_tool);
 CREATE INDEX idx_work_orders_work_order_number ON work_orders(work_order_number);
 
--- 10. Material Stock Table Schema
+-- Trigger to update updated_at timestamp for work_orders
+CREATE OR REPLACE FUNCTION update_work_orders_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER work_orders_updated_at_trigger
+    BEFORE UPDATE ON work_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_work_orders_updated_at();
+
+-- 11. Material Stock Table Schema (depends on work_orders)
 CREATE TABLE material_stock (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_code VARCHAR(100) NOT NULL,
@@ -305,20 +308,6 @@ CREATE INDEX idx_material_stock_location ON material_stock(location);
 -- Create composite index for material-trolley lookup
 CREATE INDEX idx_material_trolley_lookup ON material_stock(material_code, trolley_code);
 
--- Trigger to update updated_at timestamp for work_orders
-CREATE OR REPLACE FUNCTION update_work_orders_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER work_orders_updated_at_trigger
-    BEFORE UPDATE ON work_orders
-    FOR EACH ROW
-    EXECUTE FUNCTION update_work_orders_updated_at();
-
 -- Trigger to update updated_at timestamp for material_stock
 CREATE OR REPLACE FUNCTION update_material_stock_updated_at()
 RETURNS TRIGGER AS $$
@@ -332,6 +321,24 @@ CREATE TRIGGER material_stock_updated_at_trigger
     BEFORE UPDATE ON material_stock
     FOR EACH ROW
     EXECUTE FUNCTION update_material_stock_updated_at();
+
+-- 12. Operator Loading / Trolley Transactions (depends on trolley and app_user)
+CREATE TABLE trolley_transaction (
+    transaction_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trolley_id        UUID REFERENCES trolley(trolley_id),
+    work_order_no     VARCHAR(50),
+    load_type         trolley_load_type NOT NULL,
+    full_quantity     INTEGER,
+    loaded_quantity   INTEGER,
+    sfg_fg_type       VARCHAR(10),
+    created_by        UUID REFERENCES app_user(user_id),
+    created_at        TIMESTAMP DEFAULT now(),
+    CHECK (
+        (load_type = 'FULL' AND loaded_quantity IS NULL)
+        OR
+        (load_type = 'PARTIAL' AND loaded_quantity IS NOT NULL)
+    )
+);
 
 -- Sample data insert for work_orders
 INSERT INTO work_orders (sr_no, work_order_number, date, tool, sub_tool, door_colour, handle, micom, lock1, disp_type, input_plan, output_plan, status)

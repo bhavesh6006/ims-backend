@@ -13,6 +13,7 @@ const UserRoleMapController = require('./controllers/userRoleMap.controller');
 const trolleyMaterialMappingController = require('./controllers/trolleyMaterialMapping.controller');
 const materialStockController = require('./controllers/materialStock.controller');
 const workOrderController = require('./controllers/workOrder.controller');
+const trollyConditionController = require('./controllers/trollyCondition.controller');
 
 // Middleware to log which route is being matched
 router.use((req, res, next) => {
@@ -68,6 +69,13 @@ router.get('/antennas/:id', antennaController.getAntennaById);
 router.post('/antennas', antennaController.createAntenna);
 router.put('/antennas/:id', antennaController.updateAntenna);
 router.delete('/antennas/:id', antennaController.deleteAntenna);
+
+// Trolly Condition Routes
+router.get('/trolly-conditions', trollyConditionController.getAllTrollyConditions);
+router.get('/trolly-conditions/:id', trollyConditionController.getTrollyConditionById);
+router.post('/trolly-conditions', trollyConditionController.createTrollyCondition);
+router.put('/trolly-conditions/:id', trollyConditionController.updateTrollyCondition);
+router.delete('/trolly-conditions/:id', trollyConditionController.deleteTrollyCondition);
 
 // Store Location Routes
 router.get('/store-locations', storeLocationController.getAllStoreLocations);

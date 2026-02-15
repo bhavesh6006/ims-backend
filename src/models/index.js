@@ -9,6 +9,7 @@ const StoreLocation = require('./storeLocation.model');
 const StoreLocationAntenna = require('./storeLocationAntenna.model');
 const MaterialStock = require('./materialStock.model');
 const WorkOrder = require('./workOrder.model');
+const TrollyCondition = require('./trollyCondition.model');
 
 // Define all associations here
 Material.belongsTo(MaterialType, {
@@ -74,5 +75,6 @@ module.exports = {
   StoreLocation,
   StoreLocationAntenna,
   MaterialStock,
-  WorkOrder
+  WorkOrder,
+  TrollyCondition
 };

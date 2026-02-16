@@ -1,7 +1,7 @@
 const sequelize = require('../config/database');
 const Material = require('./material.model');
 const MaterialType = require('./materialType.model');
-const SubtoolPosition = require('./subtoolPosition.model');
+const Subtool = require('./subtool.model');
 const TrollyType = require('./trollyType.model');
 const TrolleyMaterialMapping = require('./trolleyMaterialMapping.model');
 const Antenna = require('./antenna.model');
@@ -15,6 +15,11 @@ const TrollyCondition = require('./trollyCondition.model');
 Material.belongsTo(MaterialType, {
   foreignKey: 'material_type_id',
   as: 'materialType'
+});
+
+Material.belongsTo(Subtool, {
+  foreignKey: 'subtool_id',
+  as: 'subtool'
 });
 
 MaterialType.hasMany(Material, {
@@ -68,7 +73,7 @@ module.exports = {
   sequelize,
   Material,
   MaterialType,
-  SubtoolPosition,
+  Subtool,
   TrollyType,
   TrolleyMaterialMapping,
   Antenna,

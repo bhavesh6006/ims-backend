@@ -29,11 +29,11 @@ CREATE TABLE material_type (
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE subtool_position (
-    subtool_position_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    subtool_position     VARCHAR(100),
-    created_at           TIMESTAMP DEFAULT now(),
-    updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE subtool (
+    subtool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        VARCHAR(100),
+    created_at  TIMESTAMP DEFAULT now(),
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 4. Users & Roles (LDAP Integrated)
@@ -70,6 +70,7 @@ CREATE TABLE trolley (
     trolley_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trolley_code      VARCHAR(50) UNIQUE NOT NULL,
     trolly_type_id    UUID REFERENCES trolly_type(trolly_type_id),
+    trolley_condition_id UUID REFERENCES trolly_condition(trolley_condition_id),
     trolley_image     TEXT,
     barcode           VARCHAR(100),
     qr_code           VARCHAR(100),
@@ -79,6 +80,7 @@ CREATE TABLE trolley (
     volume_mm3        NUMERIC(15,2),
     notes             TEXT,
     status             status_enum NOT NULL DEFAULT 'ACTIVE',
+    ownership         VARCHAR(100),
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT now()
 );
@@ -92,13 +94,13 @@ CREATE UNIQUE INDEX unique_trolley_qr_code
 ON trolley (qr_code) 
 WHERE qr_code IS NOT NULL AND qr_code <> '';
 
--- 6. Material Master (depends on material_type, subtool_position)
+-- 6. Material Master (depends on material_type, subtool)
 CREATE TABLE material (
     material_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_code       VARCHAR(50) UNIQUE NOT NULL,
     material_name       VARCHAR(100) NOT NULL,
     material_type_id    UUID REFERENCES material_type(material_type_id),
-    subtool_position_id UUID[],  -- Array of subtool position IDs (no FK, validated via trigger)
+    subtool_id          UUID REFERENCES subtool(subtool_id),
     length_mm           NUMERIC(10,2),
     width_mm            NUMERIC(10,2),
     height_mm           NUMERIC(10,2),

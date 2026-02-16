@@ -22,6 +22,15 @@ const Trolly = sequelize.define('Trolly', {
     },
     comment: 'Foreign key reference to trolly_type'
   },
+  trolley_condition_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'trolley_condition',
+      key: 'trolley_condition_id'
+    },
+    comment: 'Foreign key reference to trolley_condition'
+  },
   trolley_image: {
     type: DataTypes.TEXT,
     comment: 'Image in base64 format for trolley'
@@ -55,6 +64,10 @@ const Trolly = sequelize.define('Trolly', {
   notes: {
     type: DataTypes.TEXT,
     comment: 'Additional notes or remarks'
+  },
+  ownership: {
+    type: DataTypes.STRING(100),
+    comment: 'Ownership information'
   },
   status: {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),

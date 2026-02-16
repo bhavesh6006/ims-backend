@@ -27,10 +27,14 @@ const Material = sequelize.define('Material', {
     },
     comment: 'Foreign key reference to material_type'
   },
-  subtool_position_id: {
-    type: DataTypes.ARRAY(DataTypes.UUID),
+  subtool_id: {
+    type: DataTypes.UUID,
     allowNull: true,
-    comment: 'Array of subtool position IDs'
+    references: {
+      model: 'subtool',
+      key: 'subtool_id'
+    },
+    comment: 'Foreign key reference to subtool'
   },
   length_mm: {
     type: DataTypes.DECIMAL(10, 2),

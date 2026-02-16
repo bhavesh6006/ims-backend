@@ -1,16 +1,16 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const SubtoolPosition = sequelize.define('SubtoolPosition', {
-  subtool_position_id: {
+const Subtool = sequelize.define('Subtool', {
+  subtool_id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  subtool_position: {
+  name: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    comment: 'Subtool position name/description'
+    comment: 'Subtool name/description'
   },
   created_at: {
     type: DataTypes.DATE,
@@ -21,13 +21,13 @@ const SubtoolPosition = sequelize.define('SubtoolPosition', {
     defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'subtool_position',
+  tableName: 'subtool',
   timestamps: false,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   indexes: [
-    { fields: ['subtool_position_id'] }
+    { fields: ['subtool_id'] }
   ]
 });
 
-module.exports = SubtoolPosition;
+module.exports = Subtool;

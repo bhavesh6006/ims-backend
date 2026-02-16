@@ -1,4 +1,4 @@
-const { Material, MaterialType, SubtoolPosition } = require('../models');
+const { Material, MaterialType, Subtool } = require('../models');
 
 class MaterialController {
   /**
@@ -20,36 +20,20 @@ class MaterialController {
             model: MaterialType, 
             as: 'materialType',
             attributes: ['material_type_id', 'material_type']
+          },
+          {
+            model: Subtool,
+            as: 'subtool',
+            attributes: ['subtool_id', 'name']
           }
         ],
         order: [['created_at', 'DESC']]
       });
 
-      // Manually fetch and attach subtool positions for each material
-      const materialsWithPositions = await Promise.all(
-        materials.map(async (material) => {
-          const materialJson = material.toJSON();
-          
-          if (materialJson.subtool_position_id && materialJson.subtool_position_id.length > 0) {
-            const positions = await SubtoolPosition.findAll({
-              where: {
-                subtool_position_id: materialJson.subtool_position_id
-              },
-              attributes: ['subtool_position_id', 'subtool_position']
-            });
-            materialJson.subtoolPositions = positions;
-          } else {
-            materialJson.subtoolPositions = [];
-          }
-          
-          return materialJson;
-        })
-      );
-
       res.status(200).json({
         success: true,
-        count: materialsWithPositions.length,
-        data: materialsWithPositions
+        count: materials.length,
+        data: materials
       });
     } catch (error) {
       res.status(500).json({
@@ -72,6 +56,11 @@ class MaterialController {
             model: MaterialType, 
             as: 'materialType',
             attributes: ['material_type_id', 'material_type']
+          },
+          {
+            model: Subtool,
+            as: 'subtool',
+            attributes: ['subtool_id', 'name']
           }
         ]
       });
@@ -83,24 +72,9 @@ class MaterialController {
         });
       }
 
-      const materialJson = material.toJSON();
-      
-      // Fetch subtool positions if they exist
-      if (materialJson.subtool_position_id && materialJson.subtool_position_id.length > 0) {
-        const positions = await SubtoolPosition.findAll({
-          where: {
-            subtool_position_id: materialJson.subtool_position_id
-          },
-          attributes: ['subtool_position_id', 'subtool_position']
-        });
-        materialJson.subtoolPositions = positions;
-      } else {
-        materialJson.subtoolPositions = [];
-      }
-
       res.status(200).json({
         success: true,
-        data: materialJson
+        data: material
       });
     } catch (error) {
       res.status(500).json({
@@ -125,6 +99,11 @@ class MaterialController {
             model: MaterialType, 
             as: 'materialType',
             attributes: ['material_type_id', 'material_type']
+          },
+          {
+            model: Subtool,
+            as: 'subtool',
+            attributes: ['subtool_id', 'name']
           }
         ]
       });
@@ -136,24 +115,9 @@ class MaterialController {
         });
       }
 
-      const materialJson = material.toJSON();
-      
-      // Fetch subtool positions if they exist
-      if (materialJson.subtool_position_id && materialJson.subtool_position_id.length > 0) {
-        const positions = await SubtoolPosition.findAll({
-          where: {
-            subtool_position_id: materialJson.subtool_position_id
-          },
-          attributes: ['subtool_position_id', 'subtool_position']
-        });
-        materialJson.subtoolPositions = positions;
-      } else {
-        materialJson.subtoolPositions = [];
-      }
-
       res.status(200).json({
         success: true,
-        data: materialJson
+        data: material
       });
     } catch (error) {
       res.status(500).json({
@@ -169,7 +133,24 @@ class MaterialController {
    */
   async createMaterial(req, res) {
     try {
-      const material = await Material.create(req.body);
+      const payload = { ...req.body };
+
+      // Accept singular `subtool_id`; if an array was sent, take first element
+      if (Array.isArray(payload.subtool_id)) {
+        payload.subtool_id = payload.subtool_id.length ? payload.subtool_id[0] : null;
+      }
+      // Support `subtool` sent as array or object -> normalize to `subtool_id`
+      if (Array.isArray(payload.subtool)) payload.subtool = payload.subtool.length ? payload.subtool[0] : null;
+      if (!payload.subtool_id && payload.subtool) {
+        if (typeof payload.subtool === 'object') {
+          payload.subtool_id = payload.subtool.subtool_id || payload.subtool.id || null;
+        } else {
+          payload.subtool_id = payload.subtool;
+        }
+      }
+      delete payload.subtool;
+
+      const material = await Material.create(payload);
 
       res.status(201).json({
         success: true,
@@ -199,7 +180,21 @@ class MaterialController {
         });
       }
 
-      await material.update(req.body);
+      const payload = { ...req.body };
+      if (Array.isArray(payload.subtool_id)) {
+        payload.subtool_id = payload.subtool_id.length ? payload.subtool_id[0] : null;
+      }
+      if (Array.isArray(payload.subtool)) payload.subtool = payload.subtool.length ? payload.subtool[0] : null;
+      if (!payload.subtool_id && payload.subtool) {
+        if (typeof payload.subtool === 'object') {
+          payload.subtool_id = payload.subtool.subtool_id || payload.subtool.id || null;
+        } else {
+          payload.subtool_id = payload.subtool;
+        }
+      }
+      delete payload.subtool;
+
+      await material.update(payload);
 
       res.status(200).json({
         success: true,

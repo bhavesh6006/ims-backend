@@ -4,7 +4,7 @@ const trollyController = require('./controllers/trolly.controller');
 const trollyTypeController = require('./controllers/trollyType.controller');
 const materialController = require('./controllers/material.controller');
 const materialTypeController = require('./controllers/materialType.controller');
-const subtoolPositionController = require('./controllers/subtoolPosition.controller');
+const subtoolController = require('./controllers/subtool.controller');
 const antennaController = require('./controllers/antenna.controller');
 const storeLocationController = require('./controllers/storeLocation.controller');
 const UserController = require('./controllers/user.controller');
@@ -55,12 +55,12 @@ router.post('/material-types', materialTypeController.createMaterialType);
 router.put('/material-types/:id', materialTypeController.updateMaterialType);
 router.delete('/material-types/:id', materialTypeController.deleteMaterialType);
 
-// Subtool Position Routes
-router.get('/subtool-positions', subtoolPositionController.getAllSubtoolPositions);
-router.get('/subtool-positions/:id', subtoolPositionController.getSubtoolPositionById);
-router.post('/subtool-positions', subtoolPositionController.createSubtoolPosition);
-router.put('/subtool-positions/:id', subtoolPositionController.updateSubtoolPosition);
-router.delete('/subtool-positions/:id', subtoolPositionController.deleteSubtoolPosition);
+// Subtool Routes
+router.get('/subtools', subtoolController.getAllSubtools);
+router.get('/subtools/:id', subtoolController.getSubtoolById);
+router.post('/subtools', subtoolController.createSubtool);
+router.put('/subtools/:id', subtoolController.updateSubtool);
+router.delete('/subtools/:id', subtoolController.deleteSubtool);
 
 // Antenna Routes
 router.get('/antennas', antennaController.getAllAntennas);

@@ -1,5 +1,6 @@
 const Trolly  = require('../models/trolly.model');
 const TrollyType = require('../models/trollyType.model');
+const TrollyCondition = require('../models/trollyCondition.model');
 // StoreLocation
 
 
@@ -22,16 +23,21 @@ class TrollyController {
         order: [['created_at', 'DESC']]
       });
 
-      // Fetch trolly types and map them
+      // Fetch trolly types and conditions and map them
       const transformedTrollies = await Promise.all(
         trollies.map(async (trolly) => {
           const trollyTypeData = await TrollyType.findOne({
             where: { trolly_type_id: trolly.trolly_type_id },
             raw: true
           });
+          const trollyConditionData = await TrollyCondition.findOne({
+            where: { trolley_condition_id: trolly.trolley_condition_id },
+            raw: true
+          });
           return {
             ...trolly,
-            trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null
+            trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null,
+            trolly_condition: trollyConditionData ? trollyConditionData.name : null
           };
         })
       );
@@ -67,15 +73,20 @@ class TrollyController {
         });
       }
 
-      // Fetch trolly type
-      const trollyTypeData = await TrollyType.findOne({
+      // Fetch trolly type and condition
+        const trollyTypeData = await TrollyType.findOne({
         where: { trolly_type_id: trolly.trolly_type_id },
+        raw: true
+      });
+      const trollyConditionData = await TrollyCondition.findOne({
+        where: { trolley_condition_id: trolly.trolley_condition_id },
         raw: true
       });
 
       const transformedTrolly = {
         ...trolly,
-        trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null
+        trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null,
+        trolly_condition: trollyConditionData ? trollyConditionData.name : null
       };
 
       res.status(200).json({
@@ -116,15 +127,20 @@ class TrollyController {
         });
       }
 
-      // Fetch trolly type
+      // Fetch trolly type and condition
       const trollyTypeData = await TrollyType.findOne({
         where: { trolly_type_id: trolly.trolly_type_id },
+        raw: true
+      });
+      const trollyConditionData = await TrollyCondition.findOne({
+        where: { trolley_condition_id: trolly.trolley_condition_id },
         raw: true
       });
 
       const transformedTrolly = {
         ...trolly,
-        trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null
+        trolly_type: trollyTypeData ? trollyTypeData.trolly_type : null,
+        trolly_condition: trollyConditionData ? trollyConditionData.name : null
       };
 
       res.status(200).json({

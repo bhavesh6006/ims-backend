@@ -16,10 +16,10 @@ const StoreLocationAntenna = sequelize.define('StoreLocationAntenna', {
     }
   },
   antenna_id: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'antenna',
+      model: 'antenna_master',
       key: 'antenna_id'
     }
   },

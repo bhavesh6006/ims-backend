@@ -1,4 +1,4 @@
-const { StoreLocation, Antenna, StoreLocationAntenna } = require('../models');
+const { StoreLocation, Antenna, StoreLocationAntenna, DeviceMaster } = require('../models');
 const sequelize = require('../config/database');
 
 class StoreLocationController {
@@ -8,7 +8,17 @@ class StoreLocationController {
         // where: { status: 'ACTIVE' },
         order: [['created_at', 'DESC']],
         include: [
-          { model: StoreLocationAntenna, as: 'antennaMappings', where: { status: 'ACTIVE' }, required: false, include: [{ model: Antenna, as: 'antenna' }] }
+          { 
+            model: StoreLocationAntenna, 
+            as: 'antennaMappings', 
+            where: { status: 'ACTIVE' }, 
+            required: false, 
+            include: [{ 
+              model: Antenna, 
+              as: 'antenna',
+              include: [{ model: DeviceMaster, as: 'device' }]
+            }] 
+          }
         ]
       });
       res.status(200).json({ success: true, count: locations.length, data: locations });
@@ -22,7 +32,17 @@ class StoreLocationController {
       const location = await StoreLocation.findOne({
         where: { store_location_id: req.params.id, status: 'ACTIVE' },
         include: [
-          { model: StoreLocationAntenna, as: 'antennaMappings', where: { status: 'ACTIVE' }, required: false, include: [{ model: Antenna, as: 'antenna' }] }
+          { 
+            model: StoreLocationAntenna, 
+            as: 'antennaMappings', 
+            where: { status: 'ACTIVE' }, 
+            required: false, 
+            include: [{ 
+              model: Antenna, 
+              as: 'antenna',
+              include: [{ model: DeviceMaster, as: 'device' }]
+            }] 
+          }
         ]
       });
       if (!location) return res.status(404).json({ success: false, message: 'Store location not found or inactive' });
@@ -51,10 +71,10 @@ class StoreLocationController {
       if (Array.isArray(antenna_mappings) && antenna_mappings.length > 0) {
         for (const m of antenna_mappings) {
           if (!m.antenna_id || !m.movement_type) continue;
-          const ant = await Antenna.findOne({ where: { antenna_id: m.antenna_id, status: 'ACTIVE' }, transaction });
+          const ant = await Antenna.findOne({ where: { antenna_id: m.antenna_id }, transaction });
           if (!ant) {
             await transaction.rollback();
-            return res.status(404).json({ success: false, message: `Antenna ${m.antenna_id} not found or inactive` });
+            return res.status(404).json({ success: false, message: `Antenna ${m.antenna_id} not found` });
           }
 
           const mapping = await StoreLocationAntenna.create({ store_location_id: location.store_location_id, antenna_id: m.antenna_id, movement_type: m.movement_type, status: 'ACTIVE' }, { transaction });
@@ -63,7 +83,18 @@ class StoreLocationController {
       }
 
       await transaction.commit();
-      const result = await StoreLocation.findOne({ where: { store_location_id: location.store_location_id }, include: [{ model: StoreLocationAntenna, as: 'antennaMappings', include: [{ model: Antenna, as: 'antenna' }] }] });
+      const result = await StoreLocation.findOne({ 
+        where: { store_location_id: location.store_location_id }, 
+        include: [{ 
+          model: StoreLocationAntenna, 
+          as: 'antennaMappings', 
+          include: [{ 
+            model: Antenna, 
+            as: 'antenna',
+            include: [{ model: DeviceMaster, as: 'device' }]
+          }] 
+        }] 
+      });
       res.status(201).json({ success: true, message: 'Store location created', data: result });
     } catch (error) {
       await transaction.rollback();
@@ -106,17 +137,28 @@ class StoreLocationController {
       if (Array.isArray(antenna_mappings_to_add) && antenna_mappings_to_add.length > 0) {
         for (const m of antenna_mappings_to_add) {
           if (!m.antenna_id || !m.movement_type) continue;
-          const ant = await Antenna.findOne({ where: { antenna_id: m.antenna_id, status: 'ACTIVE' }, transaction });
+          const ant = await Antenna.findOne({ where: { antenna_id: m.antenna_id }, transaction });
           if (!ant) {
             await transaction.rollback();
-            return res.status(404).json({ success: false, message: `Antenna ${m.antenna_id} not found or inactive` });
+            return res.status(404).json({ success: false, message: `Antenna ${m.antenna_id} not found` });
           }
           await StoreLocationAntenna.create({ store_location_id: location.store_location_id, antenna_id: m.antenna_id, movement_type: m.movement_type, status: 'ACTIVE' }, { transaction });
         }
       }
 
       await transaction.commit();
-      const updated = await StoreLocation.findOne({ where: { store_location_id: req.params.id }, include: [{ model: StoreLocationAntenna, as: 'antennaMappings', include: [{ model: Antenna, as: 'antenna' }] }] });
+      const updated = await StoreLocation.findOne({ 
+        where: { store_location_id: req.params.id }, 
+        include: [{ 
+          model: StoreLocationAntenna, 
+          as: 'antennaMappings', 
+          include: [{ 
+            model: Antenna, 
+            as: 'antenna',
+            include: [{ model: DeviceMaster, as: 'device' }]
+          }] 
+        }] 
+      });
       res.status(200).json({ success: true, message: 'Store location updated', data: updated });
     } catch (error) {
       await transaction.rollback();

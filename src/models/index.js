@@ -10,6 +10,7 @@ const StoreLocationAntenna = require('./storeLocationAntenna.model');
 const MaterialStock = require('./materialStock.model');
 const WorkOrder = require('./workOrder.model');
 const TrollyCondition = require('./trollyCondition.model');
+const DeviceMaster = require('./deviceMaster.model');
 
 // Define all associations here
 Material.belongsTo(MaterialType, {
@@ -68,6 +69,17 @@ Antenna.hasMany(StoreLocationAntenna, {
   as: 'storeMappings'
 });
 
+// Device Master <-> Antenna associations
+DeviceMaster.hasMany(Antenna, {
+  foreignKey: 'device_id',
+  as: 'antennas'
+});
+
+Antenna.belongsTo(DeviceMaster, {
+  foreignKey: 'device_id',
+  as: 'device'
+});
+
 // Export models
 module.exports = {
   sequelize,
@@ -81,5 +93,6 @@ module.exports = {
   StoreLocationAntenna,
   MaterialStock,
   WorkOrder,
-  TrollyCondition
+  TrollyCondition,
+  DeviceMaster
 };

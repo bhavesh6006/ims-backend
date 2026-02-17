@@ -156,26 +156,75 @@ COMMENT ON COLUMN trolley_material_mapping.max_quantity IS 'Maximum quantity of 
 COMMENT ON COLUMN trolley_material_mapping.version_no IS 'Version number for tracking mapping history';
 COMMENT ON COLUMN trolley_material_mapping.status IS 'ACTIVE or INACTIVE status';
 
--- 8. RFID / BLE Antenna Master
-CREATE TABLE antenna (
-    antenna_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    antenna_code      VARCHAR(50) UNIQUE NOT NULL,
-    antenna_name      VARCHAR(100),
-    antenna_type      antenna_type_enum NOT NULL,
-    frequency_range   VARCHAR(50),
-    gain_dbi          NUMERIC(5,2),
-    reader_id         VARCHAR(50),
-    reader_port       INTEGER,
-    antenna_role      VARCHAR(50),
-    orientation       VARCHAR(50),
-    mounting_type     VARCHAR(50),
-    tx_power_dbm      NUMERIC(5,2),
-    coverage_desc     TEXT,
-    status            antenna_status_enum NOT NULL DEFAULT 'ACTIVE',
-    remarks           TEXT,
-    created_at        TIMESTAMP DEFAULT now(),
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Device Master Table
+-- Purpose: Store all static and dynamic details of the FX9600 reader device
+
+CREATE TABLE device_master (
+    device_id SERIAL PRIMARY KEY,
+    device_name VARCHAR(50) NOT NULL,
+    location VARCHAR(100),
+    department VARCHAR(50),
+    ip_address INET UNIQUE NOT NULL,
+    mac_address VARCHAR(50),
+    hostname VARCHAR(50),
+    serial_no VARCHAR(50),
+    manufacturer VARCHAR(50) DEFAULT 'Zebra',
+    model VARCHAR(50) DEFAULT 'FX9600',
+    firmware_version VARCHAR(50),
+    os_description TEXT,
+    total_antennas INT,
+    active_antennas INT,
+    last_llrp_sync TIMESTAMP,
+    uptime_sec BIGINT,
+    cpu_usage NUMERIC(5,2),
+    temperature NUMERIC(5,2),
+    memory_free_mb NUMERIC(10,2),
+    last_snmp_sync TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'OFFLINE' CHECK (status IN ('ONLINE', 'OFFLINE', 'MAINTENANCE')),
+    last_seen_time TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    installed_on DATE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Create index for faster lookups
+CREATE INDEX idx_device_ip_address ON device_master(ip_address);
+CREATE INDEX idx_device_status ON device_master(status);
+CREATE INDEX idx_device_is_active ON device_master(is_active);
+
+-- Antenna Master Table
+-- Purpose: Store configuration and placement of each antenna attached to a device
+
+CREATE TABLE antenna_master (
+    antenna_id SERIAL PRIMARY KEY,
+    device_id INT NOT NULL REFERENCES device_master(device_id) ON DELETE CASCADE,
+    antenna_no INT NOT NULL,
+    antenna_name VARCHAR(50),
+    location_name VARCHAR(100),
+    zone_id INT,
+    antenna_type VARCHAR(50),
+    polarization VARCHAR(20),
+    manufacturer VARCHAR(50),
+    model VARCHAR(50),
+    tx_power_dbm NUMERIC(5,2),
+    rx_sensitivity NUMERIC(5,2),
+    orientation VARCHAR(20),
+    mounting_height_m NUMERIC(5,2),
+    facing_angle_deg NUMERIC(5,2),
+    is_enabled BOOLEAN DEFAULT TRUE,
+    is_connected BOOLEAN DEFAULT FALSE,
+    last_seen_time TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(device_id, antenna_no)
+);
+
+-- Create indexes for faster lookups
+CREATE INDEX idx_antenna_device_id ON antenna_master(device_id);
+CREATE INDEX idx_antenna_zone_id ON antenna_master(zone_id);
+CREATE INDEX idx_antenna_is_enabled ON antenna_master(is_enabled);
+CREATE INDEX idx_antenna_is_connected ON antenna_master(is_connected);
 
 -- 9. Store Location Master
 CREATE TABLE store_location (
@@ -197,7 +246,7 @@ CREATE TABLE store_location (
 CREATE TABLE store_location_antenna (
     mapping_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     store_location_id  UUID NOT NULL REFERENCES store_location(store_location_id),
-    antenna_id         UUID NOT NULL REFERENCES antenna(antenna_id),
+    antenna_id         INT NOT NULL REFERENCES antenna_master(antenna_id),
     movement_type      movement_type_enum NOT NULL,
     status             status_enum NOT NULL DEFAULT 'ACTIVE',
     created_at         TIMESTAMP DEFAULT now(),

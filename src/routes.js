@@ -14,6 +14,7 @@ const trolleyMaterialMappingController = require('./controllers/trolleyMaterialM
 const materialStockController = require('./controllers/materialStock.controller');
 const workOrderController = require('./controllers/workOrder.controller');
 const trollyConditionController = require('./controllers/trollyCondition.controller');
+const deviceMasterController = require('./controllers/deviceMaster.controller');
 
 // Middleware to log which route is being matched
 router.use((req, res, next) => {
@@ -64,11 +65,14 @@ router.delete('/subtools/:id', subtoolController.deleteSubtool);
 
 // Antenna Routes
 router.get('/antennas', antennaController.getAllAntennas);
+router.get('/antennas/device/:deviceId', antennaController.getAntennasByDevice);
 router.get('/getUnmappedAntennas', antennaController.getUnmappedAntennas);
 router.get('/antennas/:id', antennaController.getAntennaById);
 router.post('/antennas', antennaController.createAntenna);
 router.put('/antennas/:id', antennaController.updateAntenna);
 router.delete('/antennas/:id', antennaController.deleteAntenna);
+// Middleware endpoint for antenna status updates
+router.put('/antennas/status/:device_id/:antenna_no', antennaController.updateAntennaStatus);
 
 // Trolly Condition Routes
 router.get('/trolly-conditions', trollyConditionController.getAllTrollyConditions);
@@ -143,5 +147,16 @@ router.put('/work-orders/:id', workOrderController.updateWorkOrder);
 router.put('/work-orders/:id/status', workOrderController.updateWorkOrderStatus);
 router.put('/work-orders/:id/output-plan', workOrderController.updateOutputPlan);
 router.delete('/work-orders/:id', workOrderController.deleteWorkOrder);
+
+// Device Master Routes
+router.get('/devices', deviceMasterController.getAllDevices);
+router.get('/devices/ip/:ip', deviceMasterController.getDeviceByIp);
+router.get('/devices/:id', deviceMasterController.getDeviceById);
+router.post('/devices', deviceMasterController.createDevice);
+router.put('/devices/:id', deviceMasterController.updateDevice);
+router.delete('/devices/:id', deviceMasterController.deleteDevice);
+// Middleware endpoints
+router.post('/devices/sync/:ip_address', deviceMasterController.syncDeviceInfo);
+router.put('/devices/status/:ip_address', deviceMasterController.updateDeviceStatus);
 
 module.exports = router;

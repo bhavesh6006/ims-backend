@@ -3,57 +3,68 @@ const sequelize = require('../config/database');
 
 const Antenna = sequelize.define('Antenna', {
   antenna_id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
-  antenna_code: {
-    type: DataTypes.STRING(50),
+  device_id: {
+    type: DataTypes.INTEGER,
     allowNull: false,
-    unique: true
+    references: {
+      model: 'device_master',
+      key: 'device_id'
+    }
   },
-  antenna_name: {
-    type: DataTypes.STRING(100),
-    allowNull: true
-  },
-  antenna_type: {
-    type: DataTypes.ENUM('RFID', 'BLE'),
+  antenna_no: {
+    type: DataTypes.INTEGER,
     allowNull: false
   },
-  frequency_range: {
+  antenna_name: {
     type: DataTypes.STRING(50)
   },
-  gain_dbi: {
-    type: DataTypes.DECIMAL(5,2)
+  location_name: {
+    type: DataTypes.STRING(100)
   },
-  reader_id: {
-    type: DataTypes.STRING(50)
-  },
-  reader_port: {
+  zone_id: {
     type: DataTypes.INTEGER
   },
-  antenna_role: {
+  antenna_type: {
     type: DataTypes.STRING(50)
   },
-  orientation: {
+  polarization: {
+    type: DataTypes.STRING(20)
+  },
+  manufacturer: {
     type: DataTypes.STRING(50)
   },
-  mounting_type: {
+  model: {
     type: DataTypes.STRING(50)
   },
   tx_power_dbm: {
-    type: DataTypes.DECIMAL(5,2)
+    type: DataTypes.DECIMAL(5, 2)
   },
-  coverage_desc: {
-    type: DataTypes.TEXT
+  rx_sensitivity: {
+    type: DataTypes.DECIMAL(5, 2)
   },
-  status: {
-    type: DataTypes.ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE'),
-    allowNull: false,
-    defaultValue: 'ACTIVE'
+  orientation: {
+    type: DataTypes.STRING(20)
   },
-  remarks: {
-    type: DataTypes.TEXT
+  mounting_height_m: {
+    type: DataTypes.DECIMAL(5, 2)
+  },
+  facing_angle_deg: {
+    type: DataTypes.DECIMAL(5, 2)
+  },
+  is_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  is_connected: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  last_seen_time: {
+    type: DataTypes.DATE
   },
   created_at: {
     type: DataTypes.DATE,
@@ -64,10 +75,14 @@ const Antenna = sequelize.define('Antenna', {
     defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'antenna',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  tableName: 'antenna_master',
+  timestamps: false, // We're managing created_at and updated_at manually
+  indexes: [
+    {
+      unique: true,
+      fields: ['device_id', 'antenna_no']
+    }
+  ]
 });
 
 module.exports = Antenna;

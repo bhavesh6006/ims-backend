@@ -48,9 +48,19 @@ const Material = sequelize.define('Material', {
     type: DataTypes.DECIMAL(10, 2),
     comment: 'Height in mm'
   },
+  dimension_unit: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'mm',
+    comment: 'Unit for dimensions (mm, cm, m)'
+  },
   weight_kg: {
     type: DataTypes.DECIMAL(10, 3),
     comment: 'Weight in kg'
+  },
+  weight_unit: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'kg',
+    comment: 'Unit for weight (kg, g)'
   },
   status: {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),

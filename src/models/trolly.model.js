@@ -57,9 +57,19 @@ const Trolly = sequelize.define('Trolly', {
     type: DataTypes.DECIMAL(10, 2),
     comment: 'Height in cm'
   },
+  dimension_unit: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'mm',
+    comment: 'Unit for dimensions (mm, cm, m)'
+  },
   volume_mm3: {
     type: DataTypes.DECIMAL(15, 2),
     comment: 'Volume in cubic cm'
+  },
+  volume_unit: {
+    type: DataTypes.STRING(10),
+    defaultValue: 'mm³',
+    comment: 'Unit for volume (mm³, cm³, m³)'
   },
   notes: {
     type: DataTypes.TEXT,

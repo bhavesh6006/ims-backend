@@ -36,25 +36,15 @@ CREATE TABLE subtool (
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Users & Roles (LDAP Integrated)
-CREATE TABLE app_role (
-    role_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_name         VARCHAR(50) UNIQUE NOT NULL
-);
-
-CREATE TABLE app_user (
-    user_id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ldap_username     VARCHAR(100) UNIQUE NOT NULL,
-    display_name      VARCHAR(150),
-    email             VARCHAR(150),
-    is_active         BOOLEAN DEFAULT TRUE,
-    created_at        TIMESTAMP DEFAULT now()
-);
-
-CREATE TABLE user_role_map (
-    user_id           UUID REFERENCES app_user(user_id),
-    role_id           UUID REFERENCES app_role(role_id),
-    PRIMARY KEY (user_id, role_id)
+-- 4. Users & Roles
+CREATE TABLE IF NOT EXISTS app_user (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(255),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('Admin', 'StoreManager', 'Operator')),
+    status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE user_activity_log (
@@ -77,7 +67,9 @@ CREATE TABLE trolley (
     length_mm         NUMERIC(10,2),
     width_mm          NUMERIC(10,2),
     height_mm         NUMERIC(10,2),
+    dimension_unit    VARCHAR(10) DEFAULT 'mm',
     volume_mm3        NUMERIC(15,2),
+    volume_unit       VARCHAR(10) DEFAULT 'mm³',
     notes             TEXT,
     status             status_enum NOT NULL DEFAULT 'ACTIVE',
     ownership         VARCHAR(100),
@@ -104,7 +96,9 @@ CREATE TABLE material (
     length_mm           NUMERIC(10,2),
     width_mm            NUMERIC(10,2),
     height_mm           NUMERIC(10,2),
+    dimension_unit      VARCHAR(10) DEFAULT 'mm',
     weight_kg           NUMERIC(10,3),
+    weight_unit         VARCHAR(10) DEFAULT 'kg',
     status              status_enum NOT NULL DEFAULT 'ACTIVE',
     created_at          TIMESTAMP DEFAULT now(),
     updated_at          TIMESTAMP DEFAULT now()

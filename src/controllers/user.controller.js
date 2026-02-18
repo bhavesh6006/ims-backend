@@ -13,15 +13,14 @@ class UserController {
 	 */
 	async getAllUsers(req, res) {
 		try {
-			const { is_active, ldap_username } = req.query;
+			const { status, username, role } = req.query;
 			const whereClause = {};
 
-			if (typeof is_active !== 'undefined') {
-				// accept true/false or 1/0
-				const val = String(is_active).toLowerCase();
-				whereClause.is_active = val === 'true' || val === '1';
+			if (status) {
+				whereClause.status = status;
 			}
-			if (ldap_username) whereClause.ldap_username = ldap_username;
+			if (username) whereClause.username = username;
+			if (role) whereClause.role = role;
 
 			const users = await User.findAll({
 				where: whereClause,
@@ -47,9 +46,21 @@ class UserController {
 	 */
 	async createUser(req, res) {
 		try {
-			const { ldap_username, display_name, email, is_active } = req.body;
-			if (!ldap_username) {
-				return res.status(400).json({ success: false, message: 'ldap_username is required' });
+			const { username, email, role, status } = req.body;
+			if (!username) {
+				return res.status(400).json({ success: false, message: 'username is required' });
+			}
+			if (!role) {
+				return res.status(400).json({ success: false, message: 'role is required' });
+			}
+
+			// Validate role
+			const validRoles = ['Admin', 'StoreManager', 'Operator'];
+			if (!validRoles.includes(role)) {
+				return res.status(400).json({ 
+					success: false, 
+					message: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+				});
 			}
 
 			// validate email if provided
@@ -58,11 +69,10 @@ class UserController {
 			}
 
 			const newUser = await User.create({
-				ldap_username,
-				display_name,
+				username,
 				email,
-				// default true if not provided
-				is_active: typeof is_active === 'undefined' ? true : is_active
+				role,
+				status: status || 'ACTIVE'
 			});
 
 			res.status(201).json({ success: true, data: newUser });
@@ -77,12 +87,28 @@ class UserController {
 	async updateUser(req, res) {
 		try {
 			const { id } = req.params;
-			const { ldap_username, display_name, email, is_active } = req.body;
+			const { username, email, role, status } = req.body;
 
 			const user = await User.findByPk(id);
 			if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-			await user.update({ ldap_username, display_name, email, is_active });
+			// Validate role if provided
+			if (role) {
+				const validRoles = ['Admin', 'StoreManager', 'Operator'];
+				if (!validRoles.includes(role)) {
+					return res.status(400).json({ 
+						success: false, 
+						message: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+					});
+				}
+			}
+
+			// Validate email if provided
+			if (email && !isValidEmail(email)) {
+				return res.status(400).json({ success: false, message: 'Invalid email id' });
+			}
+
+			await user.update({ username, email, role, status });
 			res.status(200).json({ success: true, data: user });
 		} catch (error) {
 			res.status(500).json({ success: false, message: 'Failed to update user', error: error.message });
@@ -90,7 +116,7 @@ class UserController {
 	}
 
 	/**
-	 * Soft delete a user by id (set is_active = false)
+	 * Soft delete a user by id (set status = INACTIVE)
 	 */
 	async deleteUser(req, res) {
 		try {
@@ -98,7 +124,7 @@ class UserController {
 			const user = await User.findByPk(id);
 			if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-			await user.update({ is_active: false });
+			await user.update({ status: 'INACTIVE' });
 			res.status(200).json({ success: true, message: 'User soft-deleted' });
 		} catch (error) {
 			res.status(500).json({ success: false, message: 'Failed to delete user', error: error.message });

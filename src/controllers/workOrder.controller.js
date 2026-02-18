@@ -219,6 +219,8 @@ exports.updateWorkOrder = async (req, res) => {
       disp_type,
       input_plan,
       output_plan,
+      consumed_quantity,
+      balance_quantity,
       status,
       updated_by
     } = req.body;
@@ -243,6 +245,8 @@ exports.updateWorkOrder = async (req, res) => {
     if (lock1 !== undefined) workOrder.lock1 = lock1;
     if (disp_type !== undefined) workOrder.disp_type = disp_type;
     if (input_plan !== undefined) workOrder.input_plan = input_plan;
+    if (consumed_quantity !== undefined) workOrder.consumed_quantity = consumed_quantity;
+    if (balance_quantity !== undefined) workOrder.balance_quantity = balance_quantity;
     if (output_plan !== undefined) workOrder.output_plan = output_plan;
     if (status !== undefined) workOrder.status = status;
     if (updated_by !== undefined) workOrder.updated_by = updated_by;

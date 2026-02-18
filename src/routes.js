@@ -13,6 +13,8 @@ const materialStockController = require('./controllers/materialStock.controller'
 const workOrderController = require('./controllers/workOrder.controller');
 const trollyConditionController = require('./controllers/trollyCondition.controller');
 const deviceMasterController = require('./controllers/deviceMaster.controller');
+const authController = require('./controllers/auth.controller');
+const authMiddleware = require('./middleware/auth.middleware');
 
 // Middleware to log which route is being matched
 router.use((req, res, next) => {
@@ -143,5 +145,13 @@ router.delete('/devices/:id', deviceMasterController.deleteDevice);
 // Middleware endpoints
 router.post('/devices/sync/:ip_address', deviceMasterController.syncDeviceInfo);
 router.put('/devices/status/:ip_address', deviceMasterController.updateDeviceStatus);
+
+router.post('/auth/login', authController.login.bind(authController));
+router.post('/auth/refresh', authController.refresh.bind(authController));
+
+// Protected routes
+router.get('/auth/validate', authMiddleware.authenticate.bind(authMiddleware), authController.validate.bind(authController));
+router.post('/auth/logout', authMiddleware.authenticate.bind(authMiddleware), authController.logout.bind(authController));
+
 
 module.exports = router;

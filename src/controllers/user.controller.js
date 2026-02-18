@@ -1,4 +1,4 @@
-const User = require('../models/user.modal');
+const userService = require('../services/user.service');
 
 // simple email validation
 const isValidEmail = (email) => {
@@ -17,15 +17,12 @@ class UserController {
 			const whereClause = {};
 
 			if (status) {
-				whereClause.status = status;
+				whereClause.is_active = status;
 			}
 			if (username) whereClause.username = username;
 			if (role) whereClause.role = role;
 
-			const users = await User.findAll({
-				where: whereClause,
-				order: [['created_at', 'DESC']]
-			});
+			const users = await userService.getAll(whereClause);
 
 			res.status(200).json({
 				success: true,
@@ -55,7 +52,7 @@ class UserController {
 			}
 
 			// Validate role
-			const validRoles = ['Admin', 'StoreManager', 'Operator'];
+			const validRoles = ['Admin', 'Store Manager', 'Operator'];
 			if (!validRoles.includes(role)) {
 				return res.status(400).json({ 
 					success: false, 
@@ -63,20 +60,22 @@ class UserController {
 				});
 			}
 
-			// validate email if provided
 			if (email && !isValidEmail(email)) {
 				return res.status(400).json({ success: false, message: 'Invalid email id' });
 			}
 
-			const newUser = await User.create({
+			const newUser = await userService.create({
 				username,
 				email,
 				role,
-				status: status || 'ACTIVE'
+				is_active: status ? true : false
 			});
 
 			res.status(201).json({ success: true, data: newUser });
 		} catch (error) {
+			if (error.name === 'SequelizeUniqueConstraintError') {
+				return res.status(400).json({ success: false, message: 'Username already exists' });
+			} 
 			res.status(500).json({ success: false, message: 'Failed to create user', error: error.message });
 		}
 	}
@@ -88,9 +87,6 @@ class UserController {
 		try {
 			const { id } = req.params;
 			const { username, email, role, status } = req.body;
-
-			const user = await User.findByPk(id);
-			if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
 			// Validate role if provided
 			if (role) {
@@ -108,7 +104,11 @@ class UserController {
 				return res.status(400).json({ success: false, message: 'Invalid email id' });
 			}
 
-			await user.update({ username, email, role, status });
+			const user = await userService.update(id, { username, display_name: null, email, role, is_active: status });
+			
+			if (!user) {
+				return res.status(404).json({ success: false, message: 'User not found' });
+			}
 			res.status(200).json({ success: true, data: user });
 		} catch (error) {
 			res.status(500).json({ success: false, message: 'Failed to update user', error: error.message });
@@ -116,16 +116,17 @@ class UserController {
 	}
 
 	/**
-	 * Soft delete a user by id (set status = INACTIVE)
+	 * Permanently delete a user by id
 	 */
 	async deleteUser(req, res) {
 		try {
 			const { id } = req.params;
-			const user = await User.findByPk(id);
-			if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-			await user.update({ status: 'INACTIVE' });
-			res.status(200).json({ success: true, message: 'User soft-deleted' });
+			const deleted = await userService.delete(id);
+			
+			if (!deleted) {
+				return res.status(404).json({ success: false, message: 'User not found' });
+			}
+			res.status(200).json({ success: true, message: 'User deleted permanently' });
 		} catch (error) {
 			res.status(500).json({ success: false, message: 'Failed to delete user', error: error.message });
 		}

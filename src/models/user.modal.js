@@ -11,7 +11,11 @@ const User = sequelize.define('User', {
 		type: DataTypes.STRING(100),
 		allowNull: false,
 		unique: true,
-		comment: 'Username'
+		comment: 'username'
+	},
+	display_name: {
+		type: DataTypes.STRING(150),
+		comment: 'User display name'
 	},
 	email: {
 		type: DataTypes.STRING(255),
@@ -22,17 +26,13 @@ const User = sequelize.define('User', {
 		type: DataTypes.STRING(50),
 		allowNull: false,
 		validate: {
-			isIn: [['Admin', 'StoreManager', 'Operator']]
+			isIn: [['Admin', 'Store Manager', 'Operator']]
 		},
 		comment: 'User role'
 	},
-	status: {
-		type: DataTypes.STRING(20),
-		defaultValue: 'ACTIVE',
-		validate: {
-			isIn: [['ACTIVE', 'INACTIVE']]
-		},
-		comment: 'User status'
+	is_active: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: true
 	},
 	created_at: {
 		type: DataTypes.DATE,

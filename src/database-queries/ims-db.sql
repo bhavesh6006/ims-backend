@@ -6,6 +6,60 @@ CREATE TYPE trolley_load_type AS ENUM ('FULL', 'PARTIAL');
 CREATE TYPE movement_type_enum AS ENUM ('IN', 'OUT', 'CONSUMED');
 
 
+-- Create app_user table
+CREATE TABLE app_user (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(100) NOT NULL UNIQUE,
+    display_name VARCHAR(150),
+    email VARCHAR(150),
+    role VARCHAR(50),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    updated_by VARCHAR(100)
+);
+
+-- Create indexes for app_user
+CREATE INDEX idx_user_username ON app_user(username);
+CREATE INDEX idx_user_email ON app_user(email);
+CREATE INDEX idx_user_role ON app_user(role);
+CREATE INDEX idx_user_is_active ON app_user(is_active);
+
+-- Create audit_log table
+CREATE TABLE audit_log (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    username VARCHAR(100) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    status VARCHAR(20) NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    details JSONB,
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES app_user(user_id) ON DELETE SET NULL
+);
+
+-- Add CHECK constraint for role column
+ALTER TABLE app_user 
+ADD CONSTRAINT check_user_role 
+CHECK (role IN ('Admin', 'Store Manager', 'Operator'));
+
+-- Create indexes for audit_log
+CREATE INDEX idx_audit_user_id ON audit_log(user_id);
+CREATE INDEX idx_audit_username ON audit_log(username);
+CREATE INDEX idx_audit_action ON audit_log(action);
+CREATE INDEX idx_audit_status ON audit_log(status);
+CREATE INDEX idx_audit_created_at ON audit_log(created_at);
+CREATE INDEX idx_audit_entity ON audit_log(entity_type, entity_id);
+-- Initial default USER before LDAP server
+INSERT INTO app_user (username, display_name, email, role, is_active) VALUES
+('john.doe', 'John Doe', 'john.doe@example.com', 'Admin', true)
+
+
 -- 2. Trolley / Container Types
 CREATE TABLE trolly_type (
     trolly_type_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,24 +90,6 @@ CREATE TABLE subtool (
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 4. Users & Roles
-CREATE TABLE IF NOT EXISTS app_user (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(100) UNIQUE NOT NULL,
-    email VARCHAR(255),
-    role VARCHAR(50) NOT NULL CHECK (role IN ('Admin', 'StoreManager', 'Operator')),
-    status VARCHAR(20) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'INACTIVE')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE user_activity_log (
-    log_id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id           UUID REFERENCES app_user(user_id),
-    activity_type     VARCHAR(100),
-    activity_time     TIMESTAMP DEFAULT now(),
-    details           JSONB
-);
 
 -- 5. Trolley / Container Master (depends on trolly_type)
 CREATE TABLE trolley (

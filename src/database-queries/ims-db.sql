@@ -3,7 +3,7 @@ CREATE TYPE status_enum AS ENUM ('ACTIVE', 'INACTIVE');
 CREATE TYPE antenna_status_enum AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE');
 CREATE TYPE antenna_type_enum AS ENUM ('RFID', 'BLE');
 CREATE TYPE trolley_load_type AS ENUM ('FULL', 'PARTIAL');
-CREATE TYPE movement_type_enum AS ENUM ('IN', 'OUT');
+CREATE TYPE movement_type_enum AS ENUM ('IN', 'OUT', 'CONSUMED');
 
 
 -- 2. Trolley / Container Types

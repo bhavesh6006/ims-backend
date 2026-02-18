@@ -298,6 +298,8 @@ CREATE TABLE work_orders (
     disp_type VARCHAR(50),
     input_plan INTEGER NOT NULL,
     output_plan INTEGER DEFAULT 0,
+    consumed_quantity INTEGER DEFAULT 0,
+    balance_quantity INTEGER DEFAULT 0,
     status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN_PROGRESS', 'CLOSED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

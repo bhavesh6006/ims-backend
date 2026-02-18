@@ -17,6 +17,8 @@ exports.createWorkOrder = async (req, res) => {
       disp_type,
       input_plan,
       output_plan,
+      consumed_quantity,
+      balance_quantity,
       status,
       created_by
     } = req.body;
@@ -50,6 +52,8 @@ exports.createWorkOrder = async (req, res) => {
       lock1: lock1 || null,
       disp_type: disp_type || null,
       input_plan,
+      consumed_quantity: consumed_quantity || 0,
+      balance_quantity: balance_quantity || 0,
       output_plan: output_plan || 0,
       status: status || 'PENDING',
       created_by: created_by || null

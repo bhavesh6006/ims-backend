@@ -63,6 +63,16 @@ const WorkOrder = sequelize.define('WorkOrder', {
     allowNull: false,
     comment: 'Planned input quantity'
   },
+  consumed_quantity: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: 'Consumed quantity'
+  },
+  balance_quantity: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: 'Remaining quantity'
+  },
   output_plan: {
     type: DataTypes.INTEGER,
     defaultValue: 0,

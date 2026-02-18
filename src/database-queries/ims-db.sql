@@ -70,7 +70,7 @@ CREATE TABLE trolley (
     trolley_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trolley_code      VARCHAR(50) UNIQUE NOT NULL,
     trolly_type_id    UUID REFERENCES trolly_type(trolly_type_id),
-    trolley_condition_id UUID REFERENCES trolly_condition(trolley_condition_id),
+    trolley_condition_id UUID REFERENCES trolley_condition(trolley_condition_id),
     trolley_image     TEXT,
     barcode           VARCHAR(100),
     qr_code           VARCHAR(100),

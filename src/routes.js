@@ -15,6 +15,7 @@ const trollyConditionController = require('./controllers/trollyCondition.control
 const deviceMasterController = require('./controllers/deviceMaster.controller');
 const authController = require('./controllers/auth.controller');
 const authMiddleware = require('./middleware/auth.middleware');
+const locationTypeController = require('./controllers/locationType.controller');
 
 // Middleware to log which route is being matched
 router.use((req, res, next) => {
@@ -23,7 +24,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/', (req, res) => {
-  res.status(200).json({ status: 'OK' });
+  res.send('Welcome to the Inventory Management System API');
 });
 
 // Trollies Routes
@@ -153,5 +154,10 @@ router.post('/auth/refresh', authController.refresh.bind(authController));
 router.get('/auth/validate', authMiddleware.authenticate.bind(authMiddleware), authController.validate.bind(authController));
 router.post('/auth/logout', authMiddleware.authenticate.bind(authMiddleware), authController.logout.bind(authController));
 
+router.get('/location-types', locationTypeController.getAllLocationTypes);
+router.get('/location-types/:id', locationTypeController.getLocationTypeById);
+router.post('/location-types', locationTypeController.createLocationType);
+router.put('/location-types/:id', locationTypeController.updateLocationType);
+router.delete('/location-types/:id', locationTypeController.deleteLocationType);
 
 module.exports = router;

@@ -256,6 +256,13 @@ CREATE INDEX idx_antenna_zone_id ON antenna_master(zone_id);
 CREATE INDEX idx_antenna_is_enabled ON antenna_master(is_enabled);
 CREATE INDEX idx_antenna_is_connected ON antenna_master(is_connected);
 
+-- New: Location Type Master
+CREATE TABLE location_type (
+    location_type_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                 VARCHAR(100) NOT NULL,
+    description          TEXT
+);
+
 -- 9. Store Location Master
 CREATE TABLE store_location (
     store_location_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

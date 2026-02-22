@@ -4,7 +4,7 @@ const userService = require('../services/user.service');
 const isValidEmail = (email) => {
 	if (!email) return false;
 	const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
- 	return re.test(String(email).toLowerCase());
+	return re.test(String(email).toLowerCase());
 };
 
 class UserController {
@@ -54,9 +54,9 @@ class UserController {
 			// Validate role
 			const validRoles = ['Admin', 'Store Manager', 'Operator'];
 			if (!validRoles.includes(role)) {
-				return res.status(400).json({ 
-					success: false, 
-					message: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+				return res.status(400).json({
+					success: false,
+					message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
 				});
 			}
 
@@ -75,7 +75,7 @@ class UserController {
 		} catch (error) {
 			if (error.name === 'SequelizeUniqueConstraintError') {
 				return res.status(400).json({ success: false, message: 'Username already exists' });
-			} 
+			}
 			res.status(500).json({ success: false, message: 'Failed to create user', error: error.message });
 		}
 	}
@@ -92,9 +92,9 @@ class UserController {
 			if (role) {
 				const validRoles = ['Admin', 'StoreManager', 'Operator'];
 				if (!validRoles.includes(role)) {
-					return res.status(400).json({ 
-						success: false, 
-						message: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+					return res.status(400).json({
+						success: false,
+						message: `Invalid role. Must be one of: ${validRoles.join(', ')}`
 					});
 				}
 			}
@@ -105,12 +105,15 @@ class UserController {
 			}
 
 			const user = await userService.update(id, { username, display_name: null, email, role, is_active: status });
-			
+
 			if (!user) {
 				return res.status(404).json({ success: false, message: 'User not found' });
 			}
 			res.status(200).json({ success: true, data: user });
 		} catch (error) {
+			if (error.name === 'SequelizeUniqueConstraintError') {
+				return res.status(400).json({ success: false, message: 'Username already exists' });
+			}
 			res.status(500).json({ success: false, message: 'Failed to update user', error: error.message });
 		}
 	}
@@ -122,7 +125,7 @@ class UserController {
 		try {
 			const { id } = req.params;
 			const deleted = await userService.delete(id);
-			
+
 			if (!deleted) {
 				return res.status(404).json({ success: false, message: 'User not found' });
 			}

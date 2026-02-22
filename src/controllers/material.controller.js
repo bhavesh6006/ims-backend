@@ -135,6 +135,14 @@ class MaterialController {
     try {
       const payload = { ...req.body };
 
+      const existingmaterial = await Material.findOne({ where: { material_code: payload.material_code } });
+      if (existingmaterial) {
+        return res.status(400).json({
+          success: false,
+          message: 'Material with this code already exists'
+        });
+      }
+
       // Accept singular `subtool_id`; if an array was sent, take first element
       if (Array.isArray(payload.subtool_id)) {
         payload.subtool_id = payload.subtool_id.length ? payload.subtool_id[0] : null;
@@ -177,6 +185,14 @@ class MaterialController {
         return res.status(404).json({
           success: false,
           message: 'Material not found'
+        });
+      }
+
+      const existingmaterial = await Material.findOne({ where: { material_code: req.body.material_code } });
+      if (existingmaterial && existingmaterial.material_id !== material.material_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Material with this code already exists'
         });
       }
 

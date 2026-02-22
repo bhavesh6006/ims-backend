@@ -1,4 +1,4 @@
-const Trolly  = require('../models/trolly.model');
+const Trolly = require('../models/trolly.model');
 const TrollyType = require('../models/trollyType.model');
 const TrollyCondition = require('../models/trollyCondition.model');
 // StoreLocation
@@ -67,14 +67,14 @@ class TrollyController {
       });
 
       if (!trolly) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           message: 'trolly not found'
         });
       }
 
       // Fetch trolly type and condition
-        const trollyTypeData = await TrollyType.findOne({
+      const trollyTypeData = await TrollyType.findOne({
         where: { trolly_type_id: trolly.trolly_type_id },
         raw: true
       });
@@ -121,7 +121,7 @@ class TrollyController {
       }
 
       if (!trolly) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           message: 'trolly not found'
         });
@@ -161,6 +161,30 @@ class TrollyController {
    */
   async createTrolly(req, res) {
     try {
+      const trollyByCode = await Trolly.findOne({
+        where: { trolley_code: req.body.trolley_code },
+        raw: true
+      });
+
+      if (trollyByCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trolly with this code already exists'
+        });
+      }
+
+      const trollyByQRCode = await Trolly.findOne({
+        where: { qr_code: req.body.qr_code },
+        raw: true
+      });
+
+      if (trollyByQRCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'Trolly with this QR code already exists'
+        });
+      }
+
       const trolly = await Trolly.create(req.body);
 
       res.status(201).json({
@@ -182,10 +206,38 @@ class TrollyController {
    */
   async updateTrolly(req, res) {
     try {
+      const trollyByCode = await Trolly.findOne({
+        where: { trolley_code: req.body.trolley_code },
+        raw: true
+      });
+
+      if (trollyByCode) {
+        if (trollyByCode.trolley_id !== req.params.id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Trolly with this code already exists'
+          });
+        }
+      }
+
+      const trollyByQRCode = await Trolly.findOne({
+        where: { qr_code: req.body.qr_code },
+        raw: true
+      });
+
+      if (trollyByQRCode) {
+        if (trollyByCode.trolley_id !== req.params.id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Trolly with this QR code already exists'
+          });
+        }
+      }
+
       const trolly = await Trolly.findOne({ where: { trolley_id: req.params.id } });
 
       if (!trolly) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           message: 'Trolly not found'
         });
@@ -215,7 +267,7 @@ class TrollyController {
       const trolly = await Trolly.findOne({ where: { trolley_id: req.params.id } });
 
       if (!trolly) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
           message: 'Trolly not found'
         });

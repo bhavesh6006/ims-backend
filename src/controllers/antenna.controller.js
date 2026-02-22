@@ -1,4 +1,4 @@
-const { Antenna, DeviceMaster, StoreLocationAntenna } = require('../models');
+const { Antenna, DeviceMaster, StoreLocationAntenna, StoreLocation } = require('../models');
 const sequelize = require('../config/database');
 
 class AntennaController {
@@ -12,6 +12,11 @@ class AntennaController {
             model: DeviceMaster,
             as: 'device',
             attributes: ['device_id', 'device_name', 'ip_address', 'location']
+          },
+          {
+            model: StoreLocation,
+            as: 'storeLocation',
+            attributes: ['store_location_id', 'store_name', 'location_type_id']
           }
         ]
       });
@@ -34,6 +39,11 @@ class AntennaController {
             model: DeviceMaster,
             as: 'device',
             attributes: ['device_id', 'device_name', 'ip_address', 'location']
+          },
+          {
+            model: StoreLocation,
+            as: 'storeLocation',
+            attributes: ['store_location_id', 'store_name', 'location_type_id']
           }
         ]
       });
@@ -91,6 +101,11 @@ class AntennaController {
             model: DeviceMaster,
             as: 'device',
             attributes: ['device_id', 'device_name', 'ip_address', 'location']
+          },
+          {
+            model: StoreLocation,
+            as: 'storeLocation',
+            attributes: ['store_location_id', 'store_name', 'location_type_id']
           }
         ]
       });
@@ -107,7 +122,7 @@ class AntennaController {
   // Create new antenna
   async createAntenna(req, res) {
     try {
-      const { 
+      let { 
         device_id,
         antenna_no,
         antenna_name,
@@ -120,7 +135,8 @@ class AntennaController {
         orientation,
         mounting_height_m,
         facing_angle_deg,
-        is_enabled
+        is_enabled,
+        store_location_id
       } = req.body;
 
       // Validate required fields
@@ -131,12 +147,27 @@ class AntennaController {
         });
       }
 
+      if (!store_location_id) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'store_location_id is required' 
+        });
+      }
+
       // Check if device exists
       const device = await DeviceMaster.findOne({ where: { device_id } });
       if (!device) {
         return res.status(404).json({ 
           success: false, 
           message: 'Device not found' 
+        });
+      }
+
+      const storeLocation = await StoreLocation.findOne({ where: { store_location_id } });
+      if (!storeLocation) {
+        return res.status(404).json({
+          success: false, 
+          message: 'Store location not found' 
         });
       }
 
@@ -151,6 +182,7 @@ class AntennaController {
         });
       }
 
+      location_name = location_name || storeLocation.store_name;
       const antenna = await Antenna.create({
         device_id,
         antenna_no,
@@ -165,7 +197,8 @@ class AntennaController {
         mounting_height_m,
         facing_angle_deg,
         is_enabled: is_enabled !== undefined ? is_enabled : true,
-        is_connected: false // Will be updated by middleware
+        is_connected: false, // Will be updated by middleware
+        store_location_id
       });
 
       // Fetch the created antenna with device details
@@ -176,6 +209,11 @@ class AntennaController {
             model: DeviceMaster,
             as: 'device',
             attributes: ['device_id', 'device_name', 'ip_address', 'location']
+          },
+          {
+            model: StoreLocation,
+            as: 'storeLocation',
+            attributes: ['store_location_id', 'store_name', 'location_type_id']
           }
         ]
       });
@@ -212,6 +250,14 @@ class AntennaController {
         });
       }
 
+      const storeLocation = await StoreLocation.findOne({ where: { store_location_id: updateData.store_location_id } });
+      if (!storeLocation) {
+        return res.status(404).json({
+          success: false, 
+          message: 'Store location not found' 
+        });
+      }
+
       // If updating antenna_no, check for conflicts
       if (updateData.antenna_no && updateData.antenna_no !== antenna.antenna_no) {
         const existing = await Antenna.findOne({
@@ -230,6 +276,7 @@ class AntennaController {
 
       // Update timestamp
       updateData.updated_at = new Date();
+      updateData.location_name = updateData.location_name || storeLocation.store_name;
 
       await antenna.update(updateData);
 
@@ -241,6 +288,11 @@ class AntennaController {
             model: DeviceMaster,
             as: 'device',
             attributes: ['device_id', 'device_name', 'ip_address', 'location']
+          },
+          {
+            model: StoreLocation,
+            as: 'storeLocation',
+            attributes: ['store_location_id', 'store_name', 'location_type_id']
           }
         ]
       });
@@ -277,11 +329,11 @@ class AntennaController {
         });
       }
 
-      // Delete associated store location mappings first
-      await StoreLocationAntenna.destroy({ 
-        where: { antenna_id: antenna.antenna_id }, 
-        transaction 
-      });
+      // // Delete associated store location mappings first
+      // await StoreLocationAntenna.destroy({ 
+      //   where: { antenna_id: antenna.antenna_id }, 
+      //   transaction 
+      // });
       
       // Delete the antenna
       await antenna.destroy({ transaction });

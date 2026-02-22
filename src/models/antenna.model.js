@@ -15,6 +15,14 @@ const Antenna = sequelize.define('Antenna', {
       key: 'device_id'
     }
   },
+  store_location_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'store_location',
+      key: 'store_location_id'
+    }
+  },
   antenna_no: {
     type: DataTypes.INTEGER,
     allowNull: false

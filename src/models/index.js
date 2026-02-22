@@ -49,20 +49,9 @@ Material.hasMany(TrolleyMaterialMapping, {
   as: 'mappings'
 });
 
-// Mapping associations: store location <-> antenna (many)
-StoreLocation.hasMany(StoreLocationAntenna, {
-  foreignKey: 'store_location_id',
-  as: 'antennaMappings'
-});
-
-StoreLocationAntenna.belongsTo(StoreLocation, {
-  foreignKey: 'store_location_id',
-  as: 'storeLocation'
-});
-
-StoreLocationAntenna.belongsTo(Antenna, {
-  foreignKey: 'antenna_id',
-  as: 'antenna'
+StoreLocation.belongsTo(LocationType, {
+  foreignKey: 'location_type_id',
+  as: 'locationType'
 });
 
 Antenna.hasMany(StoreLocationAntenna, {
@@ -79,6 +68,11 @@ DeviceMaster.hasMany(Antenna, {
 Antenna.belongsTo(DeviceMaster, {
   foreignKey: 'device_id',
   as: 'device'
+});
+
+Antenna.belongsTo(StoreLocation, {
+  foreignKey: 'store_location_id',
+  as: 'storeLocation'
 });
 
 // Export models

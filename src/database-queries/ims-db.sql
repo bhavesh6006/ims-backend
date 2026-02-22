@@ -229,6 +229,7 @@ CREATE INDEX idx_device_is_active ON device_master(is_active);
 CREATE TABLE antenna_master (
     antenna_id SERIAL PRIMARY KEY,
     device_id INT NOT NULL REFERENCES device_master(device_id) ON DELETE CASCADE,
+    store_location_id UUID REFERENCES store_location(store_location_id),
     antenna_no INT NOT NULL,
     antenna_name VARCHAR(50),
     location_name VARCHAR(100),
@@ -266,6 +267,7 @@ CREATE TABLE location_type (
 -- 9. Store Location Master
 CREATE TABLE store_location (
     store_location_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    location_type_id   UUID NOT NULL REFERENCES location_type(location_type_id),
     store_code        VARCHAR(50) UNIQUE NOT NULL,
     store_name        VARCHAR(100),
     factory_name      VARCHAR(100),

@@ -12,6 +12,15 @@ const StoreLocation = sequelize.define('StoreLocation', {
     allowNull: false,
     unique: true
   },
+  location_type_id: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    references: {
+      model: 'location_type',
+      key: 'location_type_id'
+    },
+    comment: 'Foreign key reference to location_type'
+  },
   store_name: {
     type: DataTypes.STRING(100)
   },

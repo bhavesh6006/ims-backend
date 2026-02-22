@@ -109,6 +109,7 @@ CREATE TABLE trolley (
     notes             TEXT,
     status             status_enum NOT NULL DEFAULT 'ACTIVE',
     ownership         VARCHAR(100),
+    is_occupied          BOOLEAN DEFAULT FALSE NOT NULL,
     created_at        TIMESTAMP DEFAULT now(),
     updated_at        TIMESTAMP DEFAULT now()
 );

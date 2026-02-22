@@ -83,6 +83,10 @@ const Trolly = sequelize.define('Trolly', {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
     defaultValue: 'ACTIVE'
   },
+  is_occupied: {
+		type: DataTypes.BOOLEAN,
+		defaultValue: true
+	},
 }, {
   tableName: 'trolley',
   indexes: [

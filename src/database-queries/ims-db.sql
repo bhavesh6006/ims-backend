@@ -231,7 +231,7 @@ CREATE INDEX idx_device_is_active ON device_master(is_active);
 -- WARNING: It may differ from actual native database DDL
 CREATE TABLE antenna_master (
 	antenna_id serial4 NOT NULL,
-	device_id int4 NOT NULL,
+	device_id INT NOT NULL REFERENCES device_master(device_id) ON DELETE CASCADE,
 	antenna_no int4 NOT NULL,
 	antenna_name varchar(50) NULL,
 	location_name varchar(100) NULL,
@@ -250,7 +250,7 @@ CREATE TABLE antenna_master (
 	last_seen_time timestamp NULL,
 	created_at timestamp NULL,
 	updated_at timestamp NULL,
-	store_location_id uuid NULL,
+	store_location_id UUID REFERENCES store_location(store_location_id),
 	inventory_enabled bool NOT NULL,
 	gen2_session int2 NOT NULL,
 	gen2_target bpchar(1) NULL,
@@ -258,6 +258,18 @@ CREATE TABLE antenna_master (
 	duplicate_suppression_sec int4 NOT NULL,
 	resend_interval_min int4 NOT NULL
 );
+
+ALTER TABLE antenna_master
+ADD CONSTRAINT chk_gen2_session
+CHECK (gen2_session BETWEEN 0 AND 3),
+ADD CONSTRAINT chk_gen2_target
+CHECK (gen2_target IN ('A','B')),
+ADD CONSTRAINT chk_rssi_range
+CHECK (min_rssi_threshold BETWEEN -120 AND 0),
+ADD CONSTRAINT chk_duplicate_suppression_sec
+CHECK (duplicate_suppression_sec >= 0),
+ADD CONSTRAINT chk_resend_interval_min
+CHECK (resend_interval_min > 0);
 
 -- Create indexes for faster lookups
 CREATE INDEX idx_antenna_device_id ON antenna_master(device_id);

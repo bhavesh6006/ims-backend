@@ -29,28 +29,24 @@ class AuthController {
 				});
 			}
 
-			// Authenticate with LDAP
-            let isAuthenticated;
-            try {
-                if (username === 'john.doe' && password === 'password123') {
-                    isAuthenticated = true;
-                } else {
-                    isAuthenticated = await ldapService.authenticate(username, password);
-                }
-            } catch (ldapError) {
-				console.error('LDAP Error:', ldapError);
+			// Authenticate via LDAP API
+			let isAuthenticated;
+			try {
+				isAuthenticated = await ldapService.authenticate(username, password);
+			} catch (ldapError) {
+				console.error('LDAP API Error:', ldapError);
 
 				await auditLogService.logLoginFailure({
 					username,
 					ipAddress,
 					userAgent,
-					reason: 'LDAP service error',
+					reason: 'LDAP API service error',
 					details: { error: ldapError.message }
 				});
 
 				return res.status(500).json({
 					success: false,
-					message: 'LDAP authentication service error',
+					message: 'Authentication service error',
 					details: ldapError.message,
 				});
 			}
@@ -60,7 +56,7 @@ class AuthController {
 					username,
 					ipAddress,
 					userAgent,
-					reason: 'Invalid LDAP credentials'
+					reason: 'Invalid credentials'
 				});
 
 				return res.status(401).json({

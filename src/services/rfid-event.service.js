@@ -49,6 +49,19 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
 
         // 3. Process based on location type
         if (locationType === 'CONSUMED') {
+            const alreadyConsumed = await isAlreadyConsumed(trolleyCode, transaction);
+            if (alreadyConsumed) {
+                await transaction.commit();
+                return {
+                    message: `Trolley ${trolleyCode} is already consumed. No changes made.`,
+                    data: {
+                        trolleyCode,
+                        locationType,
+                        locationId,
+                        skipped: true
+                    }
+                };
+            }
             await handleConsumed(trolleyCode, transaction);
         } else if (locationType === 'IN_TRANSIT') {
             await handleInTransit(trolleyCode, locationId, transaction);
@@ -87,6 +100,24 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
         await transaction.rollback();
         throw error;
     }
+};
+
+/**
+ * Check if all material_stock records for this trolley are already CONSUMED
+ */
+const isAlreadyConsumed = async (trolleyCode, transaction) => {
+    const activeRecords = await sequelize.query(
+        `SELECT COUNT(*) as count
+         FROM material_stock
+         WHERE trolley_code = :trolleyCode AND status IN ('IN_STOCK', 'IN_TRANSIT')`,
+        {
+            replacements: { trolleyCode },
+            type: QueryTypes.SELECT,
+            transaction
+        }
+    );
+
+    return parseInt(activeRecords[0].count) === 0;
 };
 
 /**

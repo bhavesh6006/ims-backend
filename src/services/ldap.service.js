@@ -1,53 +1,67 @@
-const ldap = require('ldapjs');
+const axios = require('axios');
 
-class LdapService {
-	constructor() {
-		this.ldapUrl = process.env.LDAP_URL || 'ldap://localhost:389';
-		this.ldapBaseDn = process.env.LDAP_BASE_DN || 'dc=example,dc=com';
-		this.ldapBindDn = process.env.LDAP_BIND_DN || '';
-		this.ldapBindPassword = process.env.LDAP_BIND_PASSWORD || '';
-		this.ldapTimeout = 15000; // 15 seconds
-	}
+const LDAP_API_URL = process.env.LDAP_API_URL;
 
-	/**
-	 * Authenticate user against LDAP server
-	 * @param {string} username 
-	 * @param {string} password 
-	 * @returns {Promise<boolean>}
-	 */
-	async authenticate(username, password) {
-		return new Promise((resolve, reject) => {
-			const client = ldap.createClient({
-				url: this.ldapUrl,
-				timeout: this.ldapTimeout,
-				connectTimeout: this.ldapTimeout,
-			});
+/**
+ * Authenticate user via external LDAP API
+ * @param {string} username
+ * @param {string} password
+ * @returns {Promise<boolean>} true if authenticated
+ * @throws {Error} on API/network errors
+ */
+const authenticate = async (username, password) => {
+    if (!LDAP_API_URL) {
+        throw new Error('LDAP_API_URL is not configured in environment variables');
+    }
 
-			const userDn = `uid=${username},${this.ldapBaseDn}`;
+    try {
+        const response = await axios.post(
+            LDAP_API_URL,
+            { username, password },
+            {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 10000
+            }
+        );
 
-			client.bind(userDn, password, (err) => {
-				if (err) {
-					client.unbind();
-					if (err.name === 'InvalidCredentialsError') {
-						return resolve(false);
-					}
-					return reject(new Error(`LDAP authentication failed: ${err.message}`));
-				}
+        const { status, code, message } = response.data;
 
-				client.unbind();
-				resolve(true);
-			});
+        if (status === 'success' && code === 200) {
+            return true;
+        }
 
-			client.on('error', (err) => {
-				reject(new Error(`LDAP connection error: ${err.message}`));
-			});
+        if (code === 401) {
+            return false;
+        }
 
-			client.on('timeout', () => {
-				client.unbind();
-				reject(new Error('LDAP connection timeout'));
-			});
-		});
-	}
-}
+        if (code === 503) {
+            throw new Error('LDAP server unreachable');
+        }
 
-module.exports = new LdapService();
+        throw new Error(message || 'Authentication failed');
+    } catch (error) {
+        if (error.response) {
+            const { status, code, message } = error.response.data || {};
+
+            if (code === 401) {
+                return false;
+            }
+            if (code === 503) {
+                throw new Error('LDAP server unreachable');
+            }
+            if (code === 400) {
+                throw new Error(message || 'Missing credentials');
+            }
+
+            throw new Error(message || 'Authentication API error');
+        }
+
+        if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
+            throw new Error('LDAP authentication API is unreachable');
+        }
+
+        throw error;
+    }
+};
+
+module.exports = { authenticate };

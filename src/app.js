@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
+const rfidEventRoutes = require('./routes/rfid-event.routes');
 
 const app = express();
 
@@ -12,5 +13,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/api', routes);
+app.use('/api/rfid-event', rfidEventRoutes);
 
 module.exports = app;

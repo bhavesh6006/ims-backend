@@ -1,4 +1,4 @@
-const { sequelize } = require('../config/db.config');
+const sequelize = require('../config/database');
 const { QueryTypes } = require('sequelize');
 
 const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) => {

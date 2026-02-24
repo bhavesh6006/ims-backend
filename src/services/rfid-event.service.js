@@ -5,28 +5,28 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
     const transaction = await sequelize.transaction();
 
     try {
-        // 1. Get store_location by store_code (LocationID) and its location_type
+        // 1. Get store_location by store_location_id (LocationID) and its location_type
         const [storeLocation] = await sequelize.query(
             `SELECT sl.store_location_id, sl.store_code, sl.store_name, sl.location_type_id,
                     lt.name AS location_type_name
              FROM store_location sl
              JOIN location_type lt ON lt.location_type_id = sl.location_type_id
-             WHERE sl.store_code = :storeCode AND sl.status = 'ACTIVE'`,
+             WHERE sl.store_location_id = :storeLocationId AND sl.status = 'ACTIVE'`,
             {
-                replacements: { storeCode: locationId },
+                replacements: { storeLocationId: locationId },
                 type: QueryTypes.SELECT,
                 transaction
             }
         );
 
         if (!storeLocation) {
-            const error = new Error(`Store location not found for code: ${locationId}`);
+            const error = new Error(`Store location not found for ID: ${locationId}`);
             error.statusCode = 404;
             throw error;
         }
 
         const locationType = storeLocation.location_type_name.toUpperCase();
-
+        
         // 2. Get trolley by QR code (EPC)
         const [trolley] = await sequelize.query(
             `SELECT trolley_id, trolley_code, qr_code
@@ -51,7 +51,7 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
         if (locationType === 'CONSUMED') {
             await handleConsumed(trolleyCode, transaction);
         } else if (locationType === 'IN_TRANSIT') {
-            await handleInTransit(trolleyCode, transaction);
+            await handleInTransit(trolleyCode, locationId, transaction);
         } else if (locationType === 'IN_STOCK') {
             await handleInStock(trolleyCode, locationId, transaction);
         } else {
@@ -80,7 +80,7 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
             data: {
                 trolleyCode,
                 locationType,
-                storeCode: locationId
+                locationId: locationId
             }
         };
     } catch (error) {
@@ -147,16 +147,16 @@ const handleConsumed = async (trolleyCode, transaction) => {
 };
 
 /**
- * IN_TRANSIT: Update material_stock status to IN_TRANSIT, set location to NULL
+ * IN_TRANSIT: Update material_stock status to IN_TRANSIT, set location to received locationId
  */
-const handleInTransit = async (trolleyCode, transaction) => {
+const handleInTransit = async (trolleyCode, locationId, transaction) => {
     const [result] = await sequelize.query(
         `UPDATE material_stock
-         SET status = 'IN_TRANSIT', location = NULL, updated_at = NOW()
+         SET status = 'IN_TRANSIT', location = :locationId, updated_at = NOW()
          WHERE trolley_code = :trolleyCode AND status IN ('IN_STOCK', 'IN_TRANSIT')
          RETURNING id`,
         {
-            replacements: { trolleyCode },
+            replacements: { trolleyCode, locationId },
             type: QueryTypes.UPDATE,
             transaction
         }
@@ -172,14 +172,14 @@ const handleInTransit = async (trolleyCode, transaction) => {
 /**
  * IN_STOCK: Update material_stock status to IN_STOCK, set location to store_code
  */
-const handleInStock = async (trolleyCode, storeCode, transaction) => {
+const handleInStock = async (trolleyCode, locationID, transaction) => {
     const [result] = await sequelize.query(
         `UPDATE material_stock
-         SET status = 'IN_STOCK', location = :storeCode, updated_at = NOW()
+         SET status = 'IN_STOCK', location = :locationID, updated_at = NOW()
          WHERE trolley_code = :trolleyCode AND status IN ('IN_STOCK', 'IN_TRANSIT')
          RETURNING id`,
         {
-            replacements: { trolleyCode, storeCode },
+            replacements: { trolleyCode, locationID },
             type: QueryTypes.UPDATE,
             transaction
         }

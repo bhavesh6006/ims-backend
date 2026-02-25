@@ -9,25 +9,40 @@ const isValidEmail = (email) => {
 
 class UserController {
 	/**
-	 * Get all users
+	 * Get all users with server-side pagination and search
 	 */
 	async getAllUsers(req, res) {
 		try {
-			const { status, username, role } = req.query;
-			const whereClause = {};
+			const { status, username, role, page = 1, limit = 10, search = '' } = req.query;
+			
+			// Parse pagination parameters
+			const pageNum = parseInt(page, 10);
+			const limitNum = parseInt(limit, 10);
 
+			const filters = {};
 			if (status) {
-				whereClause.is_active = status;
+				filters.is_active = status === 'true' || status === true;
 			}
-			if (username) whereClause.username = username;
-			if (role) whereClause.role = role;
+			if (username) filters.username = username;
+			if (role) filters.role = role;
 
-			const users = await userService.getAll(whereClause);
+			const { users, total } = await userService.getAll({
+				filters,
+				page: pageNum,
+				limit: limitNum,
+				search
+			});
+
+			// Calculate total pages
+			const totalPages = Math.ceil(total / limitNum);
 
 			res.status(200).json({
 				success: true,
-				count: users.length,
-				data: users
+				data: users,
+				count: total,
+				page: pageNum,
+				pageSize: limitNum,
+				totalPages: totalPages
 			});
 		} catch (error) {
 			res.status(500).json({

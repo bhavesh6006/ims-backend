@@ -1,5 +1,6 @@
 const { TrolleyMaterialMapping, TrollyType, Material, MaterialType } = require('../models');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 // Create new mapping (one trolley type → multiple materials)
 exports.createMapping = async (req, res) => {
@@ -309,8 +310,54 @@ exports.getMappingById = async (req, res) => {
 // Get all active mappings
 exports.getAllMappings = async (req, res) => {
   try {
+    const { page = 1, limit = 10, search = '' } = req.query;
+    
+    // Parse pagination parameters
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Build where clause for search
+    const whereConditions = [{ status: 'ACTIVE' }];
+
+    // Add search functionality - search in material code/name or trolley type
+    if (search && search.trim() !== '') {
+      const searchTerm = `%${search.trim()}%`;
+      whereConditions.push({
+        [Op.or]: [
+          { '$material.material_code$': { [Op.like]: searchTerm } },
+          { '$material.material_name$': { [Op.like]: searchTerm } },
+          { '$trolleyType.trolly_type$': { [Op.like]: searchTerm } }
+        ]
+      });
+    }
+
+    // Combine all conditions with AND
+    const whereClause = { [Op.and]: whereConditions };
+
+    // Get total count for pagination
+    const totalCount = await TrolleyMaterialMapping.count({
+      where: whereClause,
+      include: [
+        {
+          model: Material,
+          as: 'material',
+          attributes: []
+        },
+        {
+          model: TrollyType,
+          as: 'trolleyType',
+          attributes: []
+        }
+      ],
+      distinct: true
+    });
+
+    // Fetch paginated mappings
     const mappings = await TrolleyMaterialMapping.findAll({
-      where: { status: 'ACTIVE' },
+      where: whereClause,
+      limit: limitNum,
+      offset: offset,
       include: [
         {
           model: Material,
@@ -334,9 +381,16 @@ exports.getAllMappings = async (req, res) => {
       ]
     });
 
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / limitNum);
+
     res.status(200).json({
       success: true,
-      data: mappings
+      data: mappings,
+      count: totalCount,
+      page: pageNum,
+      pageSize: limitNum,
+      totalPages: totalPages
     });
 
   } catch (error) {

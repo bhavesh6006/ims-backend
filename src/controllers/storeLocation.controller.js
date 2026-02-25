@@ -1,11 +1,47 @@
 const { StoreLocation, LocationType } = require('../models');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 class StoreLocationController {
   async getAllStoreLocations(req, res) {
     try {
+      const { page = 1, limit = 10, search = '' } = req.query;
+      
+      // Parse pagination parameters
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Build where clause
+      const whereConditions = [];
+
+      // Add search functionality
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        whereConditions.push({
+          [Op.or]: [
+            { store_code: { [Op.like]: searchTerm } },
+            { store_name: { [Op.like]: searchTerm } },
+            { factory_name: { [Op.like]: searchTerm } },
+            { plant_name: { [Op.like]: searchTerm } },
+            { hierarchy_level: { [Op.like]: searchTerm } }
+          ]
+        });
+      }
+
+      // Combine all conditions with AND
+      const whereClause = whereConditions.length > 0 
+        ? { [Op.and]: whereConditions }
+        : {};
+
+      // Get total count for pagination
+      const totalCount = await StoreLocation.count({ where: whereClause });
+
+      // Fetch paginated locations
       const locations = await StoreLocation.findAll({
-        // where: { status: 'ACTIVE' },
+        where: whereClause,
+        limit: limitNum,
+        offset: offset,
         order: [['created_at', 'DESC']],
         include: [
           { 
@@ -15,7 +51,18 @@ class StoreLocationController {
           }
         ]
       });
-      res.status(200).json({ success: true, count: locations.length, data: locations });
+
+      // Calculate total pages
+      const totalPages = Math.ceil(totalCount / limitNum);
+
+      res.status(200).json({ 
+        success: true, 
+        data: locations,
+        count: totalCount,
+        page: pageNum,
+        pageSize: limitNum,
+        totalPages: totalPages
+      });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to fetch store locations', error: error.message });
     }

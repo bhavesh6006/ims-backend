@@ -1,17 +1,62 @@
 const { DeviceMaster } = require('../models');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 class DeviceMasterController {
-  // Get all devices
+  // Get all devices with server-side pagination and search
   async getAllDevices(req, res) {
     try {
+      const { page = 1, limit = 10, search = '' } = req.query;
+      
+      // Parse pagination parameters
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Build where clause
+      const whereConditions = [];
+
+      // Add search functionality
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        whereConditions.push({
+          [Op.or]: [
+            { device_name: { [Op.like]: searchTerm } },
+            { location: { [Op.like]: searchTerm } },
+            { department: { [Op.like]: searchTerm } },
+            { hostname: { [Op.like]: searchTerm } },
+            { serial_no: { [Op.like]: searchTerm } },
+            { model: { [Op.like]: searchTerm } }
+          ]
+        });
+      }
+
+      // Combine all conditions with AND
+      const whereClause = whereConditions.length > 0 
+        ? { [Op.and]: whereConditions }
+        : {};
+
+      // Get total count for pagination
+      const totalCount = await DeviceMaster.count({ where: whereClause });
+
+      // Fetch paginated devices
       const devices = await DeviceMaster.findAll({
+        where: whereClause,
+        limit: limitNum,
+        offset: offset,
         order: [['created_at', 'DESC']]
       });
+
+      // Calculate total pages
+      const totalPages = Math.ceil(totalCount / limitNum);
+
       res.status(200).json({ 
         success: true, 
-        count: devices.length, 
-        data: devices 
+        data: devices,
+        count: totalCount,
+        page: pageNum,
+        pageSize: limitNum,
+        totalPages: totalPages
       });
     } catch (error) {
       console.error('Error fetching devices:', error);

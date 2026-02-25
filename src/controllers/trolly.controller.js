@@ -1,26 +1,59 @@
 const Trolly = require('../models/trolly.model');
 const TrollyType = require('../models/trollyType.model');
 const TrollyCondition = require('../models/trollyCondition.model');
+const { Op } = require('sequelize');
 // StoreLocation
 
 
 class TrollyController {
   /**
-   * Get all trollies
+   * Get all trollies with server-side pagination and search
    */
   async getAllTrollies(req, res) {
     try {
-      const { status, type, location } = req.query;
-      const whereClause = {};
+      const { status, type, location, page = 1, limit = 10, search = '' } = req.query;
+      
+      // Parse pagination parameters
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const offset = (pageNum - 1) * limitNum;
 
-      if (status) whereClause.status = status;
-      if (type) whereClause.trolly_type_id = type;
-      if (location) whereClause.current_location_id = location;
+      // Build where clause for filters
+      const whereConditions = [];
 
+      if (status) whereConditions.push({ status: status });
+      if (type) whereConditions.push({ trolly_type_id: type });
+      if (location) whereConditions.push({ current_location_id: location });
+
+      // Add search functionality
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        whereConditions.push({
+          [Op.or]: [
+            { trolley_code: { [Op.like]: searchTerm } },
+            { qr_code: { [Op.like]: searchTerm } },
+            { barcode: { [Op.like]: searchTerm } },
+            { notes: { [Op.like]: searchTerm } },
+            { ownership: { [Op.like]: searchTerm } }
+          ]
+        });
+      }
+
+      // Combine all conditions with AND
+      const whereClause = whereConditions.length > 0 
+        ? { [Op.and]: whereConditions }
+        : {};
+
+      // Get total count for pagination
+      const totalCount = await Trolly.count({ where: whereClause });
+
+      // Fetch paginated trollies
       const trollies = await Trolly.findAll({
         where: whereClause,
-        raw: true,
-        order: [['created_at', 'DESC']]
+        limit: limitNum,
+        offset: offset,
+        order: [['created_at', 'DESC']],
+        raw: true
       });
 
       // Fetch trolly types and conditions and map them
@@ -42,10 +75,16 @@ class TrollyController {
         })
       );
 
+      // Calculate total pages
+      const totalPages = Math.ceil(totalCount / limitNum);
+
       res.status(200).json({
         success: true,
-        count: transformedTrollies.length,
-        data: transformedTrollies
+        data: transformedTrollies,
+        count: totalCount,
+        page: pageNum,
+        pageSize: limitNum,
+        totalPages: totalPages
       });
     } catch (error) {
       res.status(500).json({

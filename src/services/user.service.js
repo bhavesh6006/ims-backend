@@ -1,4 +1,5 @@
 const User = require('../models/user.modal');
+const { Op } = require('sequelize');
 
 class UserService {
 	/**
@@ -36,24 +37,54 @@ class UserService {
 	}
 
 	/**
-	 * Get all users with optional filters
-	 * @param {object} filters 
-	 * @returns {Promise<User[]>}
+	 * Get all users with optional filters, pagination, and search
+	 * @param {object} options
+	 * @returns {Promise<{users: User[], total: number}>}
 	 */
-	async getAll(filters = {}) {
-		const whereClause = {};
+	async getAll(options = {}) {
+		const { filters = {}, page = 1, limit = 10, search = '' } = options;
+		
+		const offset = (page - 1) * limit;
+		const whereConditions = [];
 
 		if (typeof filters.is_active !== 'undefined') {
-			whereClause.is_active = filters.is_active;
+			whereConditions.push({ is_active: filters.is_active });
 		}
 		if (filters.username) {
-			whereClause.username = filters.username;
+			whereConditions.push({ username: filters.username });
+		}
+		if (filters.role) {
+			whereConditions.push({ role: filters.role });
 		}
 
-		return await User.findAll({
+		// Add search functionality
+		if (search && search.trim() !== '') {
+			const searchTerm = `%${search.trim()}%`;
+			whereConditions.push({
+				[Op.or]: [
+					{ username: { [Op.like]: searchTerm } },
+					{ display_name: { [Op.like]: searchTerm } },
+					{ email: { [Op.like]: searchTerm } },
+					{ role: { [Op.like]: searchTerm } }
+				]
+			});
+		}
+
+		// Combine all conditions with AND
+		const whereClause = whereConditions.length > 0 
+			? { [Op.and]: whereConditions }
+			: {};
+
+		const total = await User.count({ where: whereClause });
+
+		const users = await User.findAll({
 			where: whereClause,
+			limit: limit,
+			offset: offset,
 			order: [['created_at', 'DESC']]
 		});
+
+		return { users, total };
 	}
 
 	/**

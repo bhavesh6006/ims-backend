@@ -1,20 +1,50 @@
 const { Material, MaterialType, Subtool } = require('../models');
+const { Op } = require('sequelize');
 
 class MaterialController {
   /**
-   * Get all materials
+   * Get all materials with server-side pagination and search
    */
   async getAllMaterials(req, res) {
     try {
-      const { status, type, location } = req.query;
-      const whereClause = {};
+      const { status, type, location, page = 1, limit = 10, search = '' } = req.query;
+      
+      // Parse pagination parameters
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const offset = (pageNum - 1) * limitNum;
 
-      if (status) whereClause.status = status;
-      if (type) whereClause.material_type_id = type;
-      if (location) whereClause.current_location_id = location;
+      // Build where clause for filters
+      const whereConditions = [];
 
+      if (status) whereConditions.push({ status: status });
+      if (type) whereConditions.push({ material_type_id: type });
+      if (location) whereConditions.push({ current_location_id: location });
+
+      // Add search functionality
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        whereConditions.push({
+          [Op.or]: [
+            { material_code: { [Op.like]: searchTerm } },
+            { material_name: { [Op.like]: searchTerm } }
+          ]
+        });
+      }
+
+      // Combine all conditions with AND
+      const whereClause = whereConditions.length > 0 
+        ? { [Op.and]: whereConditions }
+        : {};
+
+      // Get total count for pagination
+      const totalCount = await Material.count({ where: whereClause });
+
+      // Fetch paginated materials
       const materials = await Material.findAll({
         where: whereClause,
+        limit: limitNum,
+        offset: offset,
         include: [
           { 
             model: MaterialType, 
@@ -30,10 +60,16 @@ class MaterialController {
         order: [['created_at', 'DESC']]
       });
 
+      // Calculate total pages
+      const totalPages = Math.ceil(totalCount / limitNum);
+
       res.status(200).json({
         success: true,
-        count: materials.length,
-        data: materials
+        data: materials,
+        count: totalCount,
+        page: pageNum,
+        pageSize: limitNum,
+        totalPages: totalPages
       });
     } catch (error) {
       res.status(500).json({

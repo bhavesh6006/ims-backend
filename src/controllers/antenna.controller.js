@@ -1,11 +1,48 @@
 const { Antenna, DeviceMaster, StoreLocationAntenna, StoreLocation } = require('../models');
 const sequelize = require('../config/database');
+const { Op } = require('sequelize');
 
 class AntennaController {
-  // Get all antennas
+  // Get all antennas with server-side pagination and search
   async getAllAntennas(req, res) {
     try {
+      const { page = 1, limit = 10, search = '' } = req.query;
+      
+      // Parse pagination parameters
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+      const offset = (pageNum - 1) * limitNum;
+
+      // Build where clause
+      const whereConditions = [];
+
+      // Add search functionality
+      if (search && search.trim() !== '') {
+        const searchTerm = `%${search.trim()}%`;
+        whereConditions.push({
+          [Op.or]: [
+            { antenna_name: { [Op.like]: searchTerm } },
+            { location_name: { [Op.like]: searchTerm } },
+            { antenna_type: { [Op.like]: searchTerm } },
+            { manufacturer: { [Op.like]: searchTerm } },
+            { model: { [Op.like]: searchTerm } }
+          ]
+        });
+      }
+
+      // Combine all conditions with AND
+      const whereClause = whereConditions.length > 0 
+        ? { [Op.and]: whereConditions }
+        : {};
+
+      // Get total count for pagination
+      const totalCount = await Antenna.count({ where: whereClause });
+
+      // Fetch paginated antennas
       const antennas = await Antenna.findAll({ 
+        where: whereClause,
+        limit: limitNum,
+        offset: offset,
         order: [['created_at', 'DESC']],
         include: [
           {
@@ -20,7 +57,18 @@ class AntennaController {
           }
         ]
       });
-      res.status(200).json({ success: true, count: antennas.length, data: antennas });
+
+      // Calculate total pages
+      const totalPages = Math.ceil(totalCount / limitNum);
+
+      res.status(200).json({ 
+        success: true, 
+        data: antennas,
+        count: totalCount,
+        page: pageNum,
+        pageSize: limitNum,
+        totalPages: totalPages
+      });
     } catch (error) {
       console.error('Error fetching antennas:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch antennas', error: error.message });

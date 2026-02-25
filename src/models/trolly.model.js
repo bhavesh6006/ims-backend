@@ -85,7 +85,7 @@ const Trolly = sequelize.define('Trolly', {
   },
   is_occupied: {
 		type: DataTypes.BOOLEAN,
-		defaultValue: true
+		defaultValue: false
 	},
 }, {
   tableName: 'trolley',

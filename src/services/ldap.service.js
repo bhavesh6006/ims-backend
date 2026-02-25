@@ -15,11 +15,10 @@ const authenticate = async (username, password) => {
     }
 
     try {
-        const response = await axios.post(
+        const response = await axios.get(
             LDAP_API_URL,
-            { username, password },
             {
-                headers: { 'Content-Type': 'application/json' },
+                params: { username, password },
                 timeout: 10000
             }
         );

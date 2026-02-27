@@ -95,4 +95,11 @@ const MaterialStock = sequelize.define('MaterialStock', {
   ]
 });
 
+MaterialStock.associate = function(models) {
+  MaterialStock.belongsTo(models.StoreLocation, {
+    foreignKey: 'location',
+    as: 'storeLocation'
+  });
+};
+
 module.exports = MaterialStock;

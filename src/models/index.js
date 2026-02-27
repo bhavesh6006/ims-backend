@@ -75,20 +75,14 @@ Antenna.belongsTo(StoreLocation, {
   as: 'storeLocation'
 });
 
+// After all models are defined/imported, call associate on each:
+const models = { Material, MaterialType, Subtool, TrollyType, TrolleyMaterialMapping, Antenna, StoreLocation, StoreLocationAntenna, MaterialStock, WorkOrder, TrollyCondition, DeviceMaster, LocationType };
+
+Object.values(models).forEach(model => {
+  if (model.associate) {
+    model.associate(models);
+  }
+});
+
 // Export models
-module.exports = {
-  sequelize,
-  Material,
-  MaterialType,
-  Subtool,
-  TrollyType,
-  TrolleyMaterialMapping,
-  Antenna,
-  StoreLocation,
-  StoreLocationAntenna,
-  MaterialStock,
-  WorkOrder,
-  TrollyCondition,
-  LocationType,
-  DeviceMaster
-};
+module.exports = models;

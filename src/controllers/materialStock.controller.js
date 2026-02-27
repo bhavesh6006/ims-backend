@@ -1,4 +1,4 @@
-const { MaterialStock } = require('../models');
+const { MaterialStock, StoreLocation } = require('../models');
 const { Op } = require('sequelize');
 
 // Create new material stock entry
@@ -214,9 +214,26 @@ exports.getMaterialStocksByWorkOrder = async (req, res) => {
       order: [['created_at', 'DESC']]
     });
 
+    // Fetch location names for all unique location IDs
+    const locationIds = [...new Set(stocks.map(s => s.location).filter(Boolean))];
+    const locations = locationIds.length
+      ? await StoreLocation.findAll({
+          where: { store_location_id: locationIds },
+          attributes: ['store_location_id', 'store_name']
+        })
+      : [];
+    const locationMap = Object.fromEntries(
+      locations.map(loc => [loc.store_location_id, loc.store_name])
+    );
+
+    const data = stocks.map(stock => ({
+      ...stock.toJSON(),
+      location_name: locationMap[stock.location] || null
+    }));
+
     res.status(200).json({
       success: true,
-      data: stocks
+      data
     });
 
   } catch (error) {

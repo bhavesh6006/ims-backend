@@ -62,10 +62,10 @@ class UserService {
 			const searchTerm = `%${search.trim()}%`;
 			whereConditions.push({
 				[Op.or]: [
-					{ username: { [Op.like]: searchTerm } },
-					{ display_name: { [Op.like]: searchTerm } },
-					{ email: { [Op.like]: searchTerm } },
-					{ role: { [Op.like]: searchTerm } }
+					{ username: { [Op.iLike]: searchTerm } },
+					{ display_name: { [Op.iLike]: searchTerm } },
+					{ email: { [Op.iLike]: searchTerm } },
+					{ role: { [Op.iLike]: searchTerm } }
 				]
 			});
 		}

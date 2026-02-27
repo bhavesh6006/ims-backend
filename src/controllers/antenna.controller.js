@@ -21,11 +21,11 @@ class AntennaController {
         const searchTerm = `%${search.trim()}%`;
         whereConditions.push({
           [Op.or]: [
-            { antenna_name: { [Op.like]: searchTerm } },
-            { location_name: { [Op.like]: searchTerm } },
-            { antenna_type: { [Op.like]: searchTerm } },
-            { manufacturer: { [Op.like]: searchTerm } },
-            { model: { [Op.like]: searchTerm } }
+            { antenna_name: { [Op.iLike]: searchTerm } },
+            { location_name: { [Op.iLike]: searchTerm } },
+            { antenna_type: { [Op.iLike]: searchTerm } },
+            { manufacturer: { [Op.iLike]: searchTerm } },
+            { model: { [Op.iLike]: searchTerm } }
           ]
         });
       }

@@ -21,12 +21,12 @@ class DeviceMasterController {
         const searchTerm = `%${search.trim()}%`;
         whereConditions.push({
           [Op.or]: [
-            { device_name: { [Op.like]: searchTerm } },
-            { location: { [Op.like]: searchTerm } },
-            { department: { [Op.like]: searchTerm } },
-            { hostname: { [Op.like]: searchTerm } },
-            { serial_no: { [Op.like]: searchTerm } },
-            { model: { [Op.like]: searchTerm } }
+            { device_name: { [Op.iLike]: searchTerm } },
+            { location: { [Op.iLike]: searchTerm } },
+            { department: { [Op.iLike]: searchTerm } },
+            { hostname: { [Op.iLike]: searchTerm } },
+            { serial_no: { [Op.iLike]: searchTerm } },
+            { model: { [Op.iLike]: searchTerm } }
           ]
         });
       }

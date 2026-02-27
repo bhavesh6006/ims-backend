@@ -26,8 +26,8 @@ class MaterialController {
         const searchTerm = `%${search.trim()}%`;
         whereConditions.push({
           [Op.or]: [
-            { material_code: { [Op.like]: searchTerm } },
-            { material_name: { [Op.like]: searchTerm } }
+            { material_code: { [Op.iLike]: searchTerm } },
+            { material_name: { [Op.iLike]: searchTerm } }
           ]
         });
       }

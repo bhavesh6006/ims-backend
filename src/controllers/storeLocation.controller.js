@@ -20,11 +20,11 @@ class StoreLocationController {
         const searchTerm = `%${search.trim()}%`;
         whereConditions.push({
           [Op.or]: [
-            { store_code: { [Op.like]: searchTerm } },
-            { store_name: { [Op.like]: searchTerm } },
-            { factory_name: { [Op.like]: searchTerm } },
-            { plant_name: { [Op.like]: searchTerm } },
-            { hierarchy_level: { [Op.like]: searchTerm } }
+            { store_code: { [Op.iLike]: searchTerm } },
+            { store_name: { [Op.iLike]: searchTerm } },
+            { factory_name: { [Op.iLike]: searchTerm } },
+            { plant_name: { [Op.iLike]: searchTerm } },
+            { hierarchy_level: { [Op.iLike]: searchTerm } }
           ]
         });
       }

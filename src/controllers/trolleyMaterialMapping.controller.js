@@ -325,9 +325,9 @@ exports.getAllMappings = async (req, res) => {
       const searchTerm = `%${search.trim()}%`;
       whereConditions.push({
         [Op.or]: [
-          { '$material.material_code$': { [Op.like]: searchTerm } },
-          { '$material.material_name$': { [Op.like]: searchTerm } },
-          { '$trolleyType.trolly_type$': { [Op.like]: searchTerm } }
+          { '$material.material_code$': { [Op.iLike]: searchTerm } },
+          { '$material.material_name$': { [Op.iLike]: searchTerm } },
+          { '$trolleyType.trolly_type$': { [Op.iLike]: searchTerm } }
         ]
       });
     }

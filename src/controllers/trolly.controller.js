@@ -30,11 +30,11 @@ class TrollyController {
         const searchTerm = `%${search.trim()}%`;
         whereConditions.push({
           [Op.or]: [
-            { trolley_code: { [Op.like]: searchTerm } },
-            { qr_code: { [Op.like]: searchTerm } },
-            { barcode: { [Op.like]: searchTerm } },
-            { notes: { [Op.like]: searchTerm } },
-            { ownership: { [Op.like]: searchTerm } }
+            { trolley_code: { [Op.iLike]: searchTerm } },
+            { qr_code: { [Op.iLike]: searchTerm } },
+            { barcode: { [Op.iLike]: searchTerm } },
+            { notes: { [Op.iLike]: searchTerm } },
+            { ownership: { [Op.iLike]: searchTerm } }
           ]
         });
       }

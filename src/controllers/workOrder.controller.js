@@ -143,6 +143,63 @@ exports.getAllWorkOrders = async (req, res) => {
   }
 };
 
+exports.getWorkOrderSummary = async (req, res) => {
+  try {
+    const { date_from, date_to } = req.query;
+    const where = {};
+
+    // Validate presence
+    if (!date_from || !date_to) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both date_from and date_to are required.'
+      });
+    }
+
+    // Validate proper date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date_from) || !dateRegex.test(date_to)) {
+      return res.status(400).json({
+        success: false,
+        message: 'date_from and date_to must be in YYYY-MM-DD format.'
+      });
+    }
+
+    // Check if valid date
+    const fromDate = new Date(date_from);
+    const toDate = new Date(date_to);
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'date_from and date_to must be valid dates.'
+      });
+    }
+
+    where.date = {
+      [Op.between]: [date_from, date_to]
+    };
+
+    const summary = await WorkOrder.findAll({
+      where,
+      order: [['date', 'DESC'], ['sr_no', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workOrders: summary
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching work order summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching work order summary',
+      error: error.message
+    });
+  }
+};
+
 // Get work order by ID
 exports.getWorkOrderById = async (req, res) => {
   try {

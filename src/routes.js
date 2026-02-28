@@ -130,6 +130,7 @@ router.post('/work-orders', workOrderController.createWorkOrder);
 router.get('/work-orders', workOrderController.getAllWorkOrders);
 router.get('/work-orders/stats', workOrderController.getWorkOrderStats);
 router.get('/work-orders/number/:workOrderNumber', workOrderController.getWorkOrderByNumber);
+router.get('/work-orders/summary', workOrderController.getWorkOrderSummary);
 router.get('/work-orders/:id', workOrderController.getWorkOrderById);
 router.put('/work-orders/:id', workOrderController.updateWorkOrder);
 router.put('/work-orders/:id/status', workOrderController.updateWorkOrderStatus);

@@ -82,8 +82,11 @@ if %errorLevel% neq 0 (
 if not exist "%CURRENT_DIR%\logs" mkdir "%CURRENT_DIR%\logs"
 "%NSSM%" set %SERVICE_NAME% AppStdout "%CURRENT_DIR%\logs\service-stdout.log"
 "%NSSM%" set %SERVICE_NAME% AppStderr "%CURRENT_DIR%\logs\service-stderr.log"
+"%NSSM%" set %SERVICE_NAME% AppStdoutCreationDisposition 4
+"%NSSM%" set %SERVICE_NAME% AppStderrCreationDisposition 4
 "%NSSM%" set %SERVICE_NAME% AppRotateFiles 1
 "%NSSM%" set %SERVICE_NAME% AppRotateOnline 1
+"%NSSM%" set %SERVICE_NAME% AppRotateSeconds 86400
 "%NSSM%" set %SERVICE_NAME% AppRotateBytes 5000000
 
 :: Restart settings
@@ -168,6 +171,16 @@ if !STARTED! equ 1 (
         echo 4. Check port: netstat -ano ^| findstr :3000
         echo ====================================
     )
+)
+
+:: Register daily log cleanup task for 30-day retention
+echo.
+echo Registering daily log cleanup scheduled task...
+schtasks /create /tn "IMS-Backend-LogCleanup" /tr "\"%CURRENT_DIR%\cleanup-old-logs.bat\"" /sc daily /st 02:00 /f /rl HIGHEST >nul 2>&1
+if %errorLevel% equ 0 (
+    echo Scheduled task "IMS-Backend-LogCleanup" created ^(runs daily at 02:00 AM^).
+) else (
+    echo WARNING: Could not create scheduled task. Run cleanup-old-logs.bat manually.
 )
 
 echo.

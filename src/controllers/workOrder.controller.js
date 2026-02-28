@@ -245,8 +245,8 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
     }
 
     // Batch create work orders from response
-    if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
-      for (const orderObj of response.data) {
+    if (response && response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
+      for (const orderObj of response.data.data) {
         let {
           W_O,
           wo_lot_qty,

@@ -1,9 +1,12 @@
 const { WorkOrder } = require('../models');
 const { Op } = require('sequelize');
+const { WorkOrderRefresh } = require('../models');
+const axios = require('axios');
 
 // Create new work order
 exports.createWorkOrder = async (req, res) => {
   try {
+    // Only single work order creation logic
     const {
       work_order_number,
       sr_no,
@@ -23,24 +26,21 @@ exports.createWorkOrder = async (req, res) => {
       created_by
     } = req.body;
 
-    // Validate required fields
     if (!work_order_number || !sr_no || !date || !tool || !sub_tool || !input_plan) {
       return res.status(400).json({
         success: false,
         message: 'work_order_number, sr_no, date, tool, sub_tool, and input_plan are required'
       });
     }
-
-    // Check if work order number already exists
-    const existingWorkOrder = await WorkOrder.findOne({ where: { work_order_number } });
-    if (existingWorkOrder) {
+    // Check if combination exists
+    const exists = await WorkOrder.findOne({ where: { work_order_number, sub_tool } });
+    if (exists) {
       return res.status(409).json({
         success: false,
-        message: 'Work order number already exists'
+        message: 'Work order number and sub_tool combination already exists'
       });
     }
-
-    const workOrder = await WorkOrder.create({
+    const payload = {
       work_order_number,
       sr_no,
       date,
@@ -57,14 +57,13 @@ exports.createWorkOrder = async (req, res) => {
       output_plan: output_plan || 0,
       status: status || 'PENDING',
       created_by: created_by || null
-    });
-
+    };
+    const workOrder = await WorkOrder.create(payload);
     res.status(201).json({
       success: true,
       message: 'Work order created successfully',
       data: workOrder
     });
-
   } catch (error) {
     console.error('Error creating work order:', error);
     res.status(500).json({
@@ -195,6 +194,142 @@ exports.getWorkOrderSummary = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching work order summary',
+      error: error.message
+    });
+  }
+};
+
+exports.getWorkOrderRefreshSummary = async (req, res) => {
+  try {
+    const now = new Date();
+    const pad = n => n.toString().padStart(2, '0');
+    const plan_date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    const payload = {
+      credentials: {
+        plan_date
+      }
+    };
+
+    let response = null;
+    // Get local time as last_refresh
+    const nowLocal = new Date();
+    const tzOffsetMs = nowLocal.getTimezoneOffset() * 60000;
+    const localDate = new Date(nowLocal.getTime() - tzOffsetMs);
+    try {
+      response = await axios.post(process.env.REFRESH_DAILY_WORK_ORDERS, payload);
+
+      // Store refresh status and reason for each attempt
+      let status = 'success';
+      let failed_reason = null;
+      if (!response) {
+        failed_reason = 'API is down or unreachable.';
+      }
+
+      await WorkOrderRefresh.create({
+        last_refresh: localDate,
+        status,
+        failed_reason
+      });
+    } catch (error) {
+      console.error('Error calling refresh API:', error);
+      let failed_reason = error && error.message ? error.message : 'API is down or unreachable.';
+      await WorkOrderRefresh.create({
+        last_refresh: localDate,
+        status: 'failure',
+        failed_reason
+      });
+    }
+
+    // Batch create work orders from response
+    if (response && response.data && Array.isArray(response.data) && response.data.length > 0) {
+      for (const orderObj of response.data) {
+        let {
+          W_O,
+          wo_lot_qty,
+          seq_no,
+          tool,
+          sub_tool,
+          door_color,
+          handel,
+          micom,
+          lock1,
+          disp_type,
+          plan_qty,
+          shift_no,
+          date,
+          created_by
+        } = orderObj;
+        if (W_O && wo_lot_qty) {
+          const workOrderNumbers = W_O.split(',').map(s => s.trim());
+          const quantities = wo_lot_qty.split(',').map(s => parseInt(s.trim(), 10));
+          for (let i = 0; i < workOrderNumbers.length; i++) {
+            const woNum = workOrderNumbers[i];
+            const qty = quantities[i];
+            const exists = await WorkOrder.findOne({ where: { work_order_number: woNum, sub_tool } });
+            if (exists) continue;
+            const payload = {
+              work_order_number: woNum,
+              sr_no: seq_no || i + 1,
+              date: plan_date,
+              tool,
+              sub_tool,
+              door_colour: door_color || null,
+              handle: handel || null,
+              micom: micom || null,
+              lock1: lock1 || null,
+              disp_type: disp_type || null,
+              input_plan: qty,
+              consumed_quantity: 0,
+              balance_quantity: 0,
+              output_plan: 0,
+              status: 'PENDING',
+              created_by: created_by || null
+            };
+            await WorkOrder.create(payload);
+            console.log(`Created work order ${woNum} with quantity ${qty}`);
+          }
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      last_refresh: localDate.toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching work order refresh summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching work order refresh summary',
+      error: error.message
+    });
+  }
+};
+
+exports.getLastRefreshDate = async (req, res) => {
+  try {
+    const lastRefresh = await WorkOrderRefresh.findOne({
+      order: [['id', 'DESC']]
+    });
+
+    // Convert last_refresh to IST (local time zone)
+    let last_refresh_local = null;
+    if (lastRefresh && lastRefresh.last_refresh) {
+      const date = new Date(lastRefresh.last_refresh);
+      // IST is UTC+5:30
+      date.setMinutes(date.getMinutes() + 330);
+      last_refresh_local = date.toISOString().replace('T', ' ').substring(0, 19);
+    }
+    res.status(200).json({
+      success: true,
+      last_refresh: last_refresh_local
+    });
+  } catch (error) {
+    console.error('Error fetching last refresh date:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching last refresh date',
       error: error.message
     });
   }
@@ -391,7 +526,7 @@ exports.updateOutputPlan = async (req, res) => {
     }
 
     workOrder.output_plan = output_plan;
-    
+
     // Auto-update status based on output_plan
     if (output_plan === 0) {
       workOrder.status = 'PENDING';

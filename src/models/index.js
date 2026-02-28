@@ -12,6 +12,7 @@ const WorkOrder = require('./workOrder.model');
 const TrollyCondition = require('./trollyCondition.model');
 const DeviceMaster = require('./deviceMaster.model');
 const LocationType = require('./locationType.model');
+const WorkOrderRefresh = require('./workOrderRefresh.model')(sequelize);
 
 // Define all associations here
 Material.belongsTo(MaterialType, {
@@ -76,7 +77,7 @@ Antenna.belongsTo(StoreLocation, {
 });
 
 // After all models are defined/imported, call associate on each:
-const models = { Material, MaterialType, Subtool, TrollyType, TrolleyMaterialMapping, Antenna, StoreLocation, StoreLocationAntenna, MaterialStock, WorkOrder, TrollyCondition, DeviceMaster, LocationType };
+const models = { Material, MaterialType, Subtool, TrollyType, TrolleyMaterialMapping, Antenna, StoreLocation, StoreLocationAntenna, MaterialStock, WorkOrder, TrollyCondition, DeviceMaster, LocationType, WorkOrderRefresh };
 
 Object.values(models).forEach(model => {
   if (model.associate) {

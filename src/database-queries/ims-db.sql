@@ -50,6 +50,13 @@ CREATE TABLE audit_log (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES app_user(user_id) ON DELETE SET NULL
 );
+-- Table to store last work order refresh date/time
+CREATE TABLE work_order_refresh (
+    id SERIAL PRIMARY KEY,
+    last_refresh TIMESTAMP NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    failed_reason TEXT
+);
 
 -- Add CHECK constraint for role column
 ALTER TABLE app_user 

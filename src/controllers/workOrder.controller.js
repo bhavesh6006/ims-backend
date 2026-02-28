@@ -220,7 +220,7 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
       response = await axios.post(process.env.REFRESH_DAILY_WORK_ORDERS, payload);
 
       console.log('Refresh API called:', process.env.REFRESH_DAILY_WORK_ORDERS, 'Payload:', payload, 'Response status:', response.status);
-      console.log('Response data:', response.data);
+      console.log('Response data:', response?.data?.data || 'No data in response');
 
       // Store refresh status and reason for each attempt
       let status = 'success';

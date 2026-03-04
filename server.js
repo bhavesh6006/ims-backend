@@ -17,6 +17,24 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
+// Override console methods to add timestamps
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+const log = (...args) => {
+  originalLog(`[${new Date().toISOString()}] [INFO]`, ...args);
+};
+log.__timestamped = true;
+console.log = log;
+
+console.error = (...args) => {
+  originalError(`[${new Date().toISOString()}] [ERROR]`, ...args);
+};
+console.warn = (...args) => {
+  originalWarn(`[${new Date().toISOString()}] [WARN]`, ...args);
+};
+
 // Log startup immediately to diagnose service issues
 const startupLog = path.join(logsDir, 'startup.log');
 fs.appendFileSync(startupLog, `[${new Date().toISOString()}] Server starting...\n`);

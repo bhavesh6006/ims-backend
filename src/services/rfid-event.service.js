@@ -122,7 +122,7 @@ const isAlreadyConsumed = async (trolleyCode, transaction) => {
 
 /**
  * CONSUMED: Update material_stock status to CONSUMED,
- * then update work_orders consumed_quantity and balance_quantity
+ * then update work_orders consumed_quantity
  */
 const handleConsumed = async (trolleyCode, transaction) => {
     // Get all active material_stock records for this trolley
@@ -156,12 +156,11 @@ const handleConsumed = async (trolleyCode, transaction) => {
             }
         );
 
-        // Update work_orders: add to consumed_quantity, subtract from balance_quantity
+        // Update work_orders: only add to consumed_quantity, do not modify balance_quantity
         if (stock.work_order_id) {
             await sequelize.query(
                 `UPDATE work_orders
                  SET consumed_quantity = consumed_quantity + :quantity,
-                     balance_quantity = GREATEST(balance_quantity - :quantity, 0),
                      updated_at = NOW()
                  WHERE id = :workOrderId`,
                 {

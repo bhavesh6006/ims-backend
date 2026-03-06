@@ -32,7 +32,7 @@ class UserService {
 	 */
 	async findActiveById(userId) {
 		return await User.findOne({
-			where: { id: userId, is_active: true }
+			where: { user_id: userId, is_active: true }
 		});
 	}
 

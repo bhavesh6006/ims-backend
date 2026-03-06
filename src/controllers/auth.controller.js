@@ -102,12 +102,12 @@ class AuthController {
 				}
 			});
 
-			// Return response
+			// Return response with both tokens
 			res.status(200).json({
 				success: true,
 				message: 'Login successful',
 				token,
-				refreshToken,
+				refreshToken, // Include refresh token in the response
 				user: {
 					user_id: user.user_id,
 					username: user.username,
@@ -175,7 +175,6 @@ class AuthController {
 	async refresh(req, res) {
 		const ipAddress = requestUtil.getClientIp(req);
 		const userAgent = requestUtil.getUserAgent(req);
-
 		try {
 			const authHeader = req.headers.authorization;
 
@@ -188,7 +187,6 @@ class AuthController {
 
 			const refreshToken = authHeader.substring(7);
 			const decoded = jwtUtil.verifyToken(refreshToken);
-
 			// Verify it's a refresh token
 			if (decoded.type !== 'refresh') {
 				return res.status(401).json({
@@ -216,8 +214,9 @@ class AuthController {
 				});
 			}
 
-			// Generate new access token
+			// Generate new access token and refresh token
 			const token = jwtUtil.generateToken(user);
+			const newRefreshToken = jwtUtil.generateRefreshToken(user);
 
 			// Log token refresh
 			await auditLogService.logTokenRefresh({
@@ -227,9 +226,11 @@ class AuthController {
 				userAgent
 			});
 
+			// Return response with both tokens
 			res.status(200).json({
 				success: true,
 				token,
+				refreshToken: newRefreshToken, // Include new refresh token in the response
 			});
 		} catch (error) {
 			if (error.message === 'Token expired') {

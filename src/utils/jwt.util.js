@@ -14,7 +14,7 @@ class JwtUtil {
 	 */
 	generateToken(user) {
 		const payload = {
-			user_id: user.id,
+			user_id: user.user_id,
 			username: user.username,
 			email: user.email,
 			role: user.role,
@@ -30,7 +30,7 @@ class JwtUtil {
 	 */
 	generateRefreshToken(user) {
 		const payload = {
-			user_id: user.id,
+			user_id: user.user_id,
 			username: user.username,
 			type: 'refresh',
 		};

@@ -43,7 +43,7 @@ exports.createMaterialStock = async (req, res) => {
       work_order_number: work_order_number || null,
       loading_type: loading_type || null,
       loaded_by: loaded_by || null,
-      loaded_at: loaded_at || new Date(),
+      loaded_at: loaded_at || new Date().toISOString(),
       status: status || 'IN_STOCK',
       remarks: remarks || null
     });
@@ -254,6 +254,7 @@ exports.updateMaterialStock = async (req, res) => {
       quantity,
       location,
       status,
+      loading_type,
       remarks
     } = req.body;
 
@@ -276,6 +277,7 @@ exports.updateMaterialStock = async (req, res) => {
       }
       materialStock.quantity = quantity;
     }
+    if (loading_type !== undefined) materialStock.loading_type = loading_type;
     if (location !== undefined) materialStock.location = location;
     if (status !== undefined) materialStock.status = status;
     if (remarks !== undefined) materialStock.remarks = remarks;

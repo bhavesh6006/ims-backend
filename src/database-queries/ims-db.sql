@@ -488,3 +488,67 @@ COMMENT ON COLUMN material_stock.material_code IS 'Material code from work order
 COMMENT ON COLUMN material_stock.trolley_code IS 'Trolley ID where material is loaded';
 COMMENT ON COLUMN material_stock.location IS 'Physical location tracked via RFID antenna (future integration)';
 COMMENT ON COLUMN material_stock.work_order_id IS 'Reference to source work order';
+
+
+-- Convert TIMESTAMP columns to TIMESTAMP WITH TIME ZONE
+
+-- app_user table
+ALTER TABLE app_user ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE app_user ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- audit_log table
+ALTER TABLE audit_log ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- work_order_refresh table
+ALTER TABLE work_order_refresh ALTER COLUMN last_refresh TYPE TIMESTAMP WITH TIME ZONE;
+
+-- trolly_type table
+ALTER TABLE trolly_type ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE trolly_type ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- material_type table
+ALTER TABLE material_type ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE material_type ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- subtool table
+ALTER TABLE subtool ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE subtool ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- trolley table
+ALTER TABLE trolley ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE trolley ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- material table
+ALTER TABLE material ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE material ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- trolley_material_mapping table
+ALTER TABLE trolley_material_mapping ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE trolley_material_mapping ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- device_master table
+ALTER TABLE device_master ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE device_master ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE device_master ALTER COLUMN last_llrp_sync TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE device_master ALTER COLUMN last_snmp_sync TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE device_master ALTER COLUMN last_seen_time TYPE TIMESTAMP WITH TIME ZONE;
+
+-- store_location table
+ALTER TABLE store_location ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE store_location ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- store_location_antenna table
+ALTER TABLE store_location_antenna ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE store_location_antenna ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- work_orders table
+ALTER TABLE work_orders ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE work_orders ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- material_stock table
+ALTER TABLE material_stock ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE material_stock ALTER COLUMN updated_at TYPE TIMESTAMP WITH TIME ZONE;
+ALTER TABLE material_stock ALTER COLUMN loaded_at TYPE TIMESTAMP WITH TIME ZONE;
+
+-- trolley_transaction table
+ALTER TABLE trolley_transaction ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;

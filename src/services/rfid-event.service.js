@@ -62,7 +62,7 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
                     }
                 };
             }
-            await handleConsumed(trolleyCode, transaction);
+            await handleConsumed(trolleyCode, locationId, transaction);
         } else if (locationType === 'IN_TRANSIT') {
             await handleInTransit(trolleyCode, locationId, transaction);
         } else if (locationType === 'IN_STOCK') {
@@ -124,7 +124,7 @@ const isAlreadyConsumed = async (trolleyCode, transaction) => {
  * CONSUMED: Update material_stock status to CONSUMED,
  * then update work_orders consumed_quantity
  */
-const handleConsumed = async (trolleyCode, transaction) => {
+const handleConsumed = async (trolleyCode, locationId, transaction) => {
     // Get all active material_stock records for this trolley
     const stockRecords = await sequelize.query(
         `SELECT id, material_code, trolley_code, quantity, work_order_id, work_order_number
@@ -147,10 +147,10 @@ const handleConsumed = async (trolleyCode, transaction) => {
         // Update material_stock status to CONSUMED
         await sequelize.query(
             `UPDATE material_stock
-             SET status = 'CONSUMED', location = NULL, updated_at = NOW()
+             SET status = 'CONSUMED', location = :locationId, updated_at = NOW()
              WHERE id = :stockId`,
             {
-                replacements: { stockId: stock.id },
+                replacements: { stockId: stock.id, locationId },
                 type: QueryTypes.UPDATE,
                 transaction
             }

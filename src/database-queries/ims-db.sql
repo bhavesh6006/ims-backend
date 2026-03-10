@@ -389,6 +389,22 @@ CREATE TABLE work_orders (
     updated_by VARCHAR(100)
 );
 
+-- Function to auto-calculate balance_quantity
+CREATE OR REPLACE FUNCTION update_balance_quantity()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.balance_quantity = NEW.input_plan - NEW.output_plan;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger on INSERT and UPDATE
+CREATE TRIGGER work_orders_balance_quantity_trigger
+    BEFORE INSERT OR UPDATE OF input_plan, output_plan
+    ON work_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION update_balance_quantity();
+
 -- Create indexes for better query performance
 CREATE INDEX idx_work_orders_status ON work_orders(status);
 CREATE INDEX idx_work_orders_date ON work_orders(date);

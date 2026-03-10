@@ -83,6 +83,9 @@ CREATE TABLE trolly_type (
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+UPDATE trolly_type SET trolly_type = UPPER(TRIM(trolly_type));
+ALTER TABLE trolly_type ADD CONSTRAINT uq_trolly_type UNIQUE (trolly_type);
+
 -- New: Trolley Condition Master
 CREATE TABLE trolley_condition (
     trolley_condition_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -213,9 +213,7 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
 
     let response = null;
     // Get local time as last_refresh
-    const nowLocal = new Date();
-    const tzOffsetMs = nowLocal.getTimezoneOffset() * 60000;
-    const localDate = new Date(nowLocal.getTime() - tzOffsetMs);
+    const localDate = new Date();
     try {
       response = await axios.post(process.env.REFRESH_DAILY_WORK_ORDERS, payload);
 

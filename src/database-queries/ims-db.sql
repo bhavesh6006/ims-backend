@@ -571,3 +571,8 @@ ALTER TABLE material_stock ALTER COLUMN loaded_at TYPE TIMESTAMP WITH TIME ZONE;
 
 -- trolley_transaction table
 ALTER TABLE trolley_transaction ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE;
+
+
+-- trolley column qr_code update for unique constraint
+ALTER TABLE trolley
+ADD CONSTRAINT unique_qr_code UNIQUE (qr_code);

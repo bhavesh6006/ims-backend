@@ -1,4 +1,6 @@
 const { MaterialStock, StoreLocation } = require('../models');
+const Trolly = require('../models/trolly.model');
+const sequelize = require('../config/database');
 const { Op } = require('sequelize');
 
 // Create new material stock entry
@@ -209,12 +211,13 @@ exports.getMaterialStocksByWorkOrder = async (req, res) => {
   try {
     const { workOrderNumber } = req.params;
 
+    // Fetch material stocks for the given work order
     const stocks = await MaterialStock.findAll({
       where: { work_order_id: workOrderNumber },
       order: [['created_at', 'DESC']]
     });
 
-    // Fetch location names for all unique location IDs
+    // Fetch unique location IDs
     const locationIds = [...new Set(stocks.map(s => s.location).filter(Boolean))];
     const locations = locationIds.length
       ? await StoreLocation.findAll({
@@ -226,9 +229,23 @@ exports.getMaterialStocksByWorkOrder = async (req, res) => {
       locations.map(loc => [loc.store_location_id, loc.store_name])
     );
 
+    // Fetch unique trolley codes
+    const trolleyCodes = [...new Set(stocks.map(s => s.trolley_code).filter(Boolean))];
+    const trolleyRecords = trolleyCodes.length
+      ? await Trolly.findAll({
+          where: { trolley_code: trolleyCodes },
+          attributes: ['trolley_code', 'qr_code']
+        })
+      : [];
+    const trolleyMap = Object.fromEntries(
+      trolleyRecords.map(trolley => [trolley.trolley_code, trolley.qr_code])
+    );
+
+    // Map location_name and qr_code to the material stocks
     const data = stocks.map(stock => ({
       ...stock.toJSON(),
-      location_name: locationMap[stock.location] || null
+      location_name: locationMap[stock.location] || null,
+      trolley_qr_code: trolleyMap[stock.trolley_code] || null
     }));
 
     res.status(200).json({

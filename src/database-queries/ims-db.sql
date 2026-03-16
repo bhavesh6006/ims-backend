@@ -576,3 +576,19 @@ ALTER TABLE trolley_transaction ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME
 -- trolley column qr_code update for unique constraint
 ALTER TABLE trolley
 ADD CONSTRAINT unique_qr_code UNIQUE (qr_code);
+
+-- added defaults for antenna_master
+ALTER TABLE antenna_master
+ALTER COLUMN inventory_enabled SET DEFAULT false;
+
+ALTER TABLE antenna_master
+ALTER COLUMN gen2_session SET DEFAULT 0;
+
+ALTER TABLE antenna_master
+ALTER COLUMN min_rssi_threshold SET DEFAULT 0;
+
+ALTER TABLE antenna_master
+ALTER COLUMN duplicate_suppression_sec SET DEFAULT 0;
+
+ALTER TABLE antenna_master
+ALTER COLUMN resend_interval_min SET DEFAULT 1;

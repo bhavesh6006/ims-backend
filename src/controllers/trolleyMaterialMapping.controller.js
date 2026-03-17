@@ -1,29 +1,31 @@
 const { TrolleyMaterialMapping, TrollyType, Material, MaterialType } = require('../models');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 
-// Create new mapping (one trolley type → multiple materials)
+// Create new mapping (one trolley type → multiple materials, with optional groups)
 exports.createMapping = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
-    const { trolley_type_id, materials, effective_from, effective_to, notes, created_by } = req.body;
+    const { trolley_type_id, materials, groups, effective_from, effective_to, notes, created_by } = req.body;
 
     // Validate required fields
-    if (!trolley_type_id || !materials || !Array.isArray(materials) || materials.length === 0) {
+    if (!trolley_type_id) {
       return res.status(400).json({
         success: false,
-        message: 'trolley_type_id and materials array are required'
+        message: 'trolley_type_id is required'
       });
     }
 
-    // Validate each material entry
-    for (const material of materials) {
-      if (!material.material_id || !material.max_quantity) {
-        return res.status(400).json({
-          success: false,
-          message: 'Each material must have material_id and max_quantity'
-        });
-      }
+    // Must have at least materials or groups
+    const hasMaterials = materials && Array.isArray(materials) && materials.length > 0;
+    const hasGroups = groups && Array.isArray(groups) && groups.length > 0;
+
+    if (!hasMaterials && !hasGroups) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one individual material or group is required'
+      });
     }
 
     // Verify trolley type exists
@@ -36,6 +38,71 @@ exports.createMapping = async (req, res) => {
       });
     }
 
+    // Collect all material IDs to check for duplicates
+    const allMaterialIds = [];
+    if (hasMaterials) {
+      for (const m of materials) {
+        if (!m.material_id || !m.max_quantity) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: 'Each individual material must have material_id and max_quantity'
+          });
+        }
+        allMaterialIds.push(m.material_id);
+      }
+    }
+    if (hasGroups) {
+      for (const group of groups) {
+        if (!group.material_ids || !Array.isArray(group.material_ids) || group.material_ids.length < 2) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: 'Each group must have at least 2 material_ids'
+          });
+        }
+        if (!group.group_total_quantity || group.group_total_quantity < 1) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: 'Each group must have a group_total_quantity >= 1'
+          });
+        }
+        for (const mid of group.material_ids) {
+          allMaterialIds.push(mid);
+        }
+      }
+    }
+
+    // Check for duplicate material IDs across all mappings
+    const uniqueMaterialIds = new Set(allMaterialIds);
+    if (uniqueMaterialIds.size !== allMaterialIds.length) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'A material cannot be used in multiple mappings (individual or group) for the same trolley type'
+      });
+    }
+
+    // Check if any of these materials already have ACTIVE mappings for this trolley type
+    const existingMappings = await TrolleyMaterialMapping.findAll({
+      where: {
+        trolley_type_id,
+        material_id: { [Op.in]: Array.from(uniqueMaterialIds) },
+        status: 'ACTIVE'
+      },
+      transaction
+    });
+
+    if (existingMappings.length > 0) {
+      const existingMaterialIds = existingMappings.map(m => m.material_id);
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: `Materials already have active mappings for this trolley type: ${existingMaterialIds.join(', ')}`
+      });
+    }
+
     // Get current max version for this trolley type
     const maxVersionResult = await TrolleyMaterialMapping.findOne({
       where: { trolley_type_id },
@@ -44,26 +111,58 @@ exports.createMapping = async (req, res) => {
     });
     const newVersion = (maxVersionResult?.dataValues?.max_version || 0) + 1;
 
-    // Insert all material mappings
-    const insertedMappings = [];
-    for (const material of materials) {
-      // Validate created_by is a valid UUID or null
-      const validCreatedBy = created_by && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(created_by) 
-        ? created_by 
-        : null;
+    const validCreatedBy = created_by && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(created_by)
+      ? created_by
+      : null;
 
-      const mapping = await TrolleyMaterialMapping.create({
-        trolley_type_id,
-        material_id: material.material_id,
-        max_quantity: material.max_quantity,
-        effective_from: effective_from || null,
-        effective_to: effective_to || null,
-        notes: notes || null,
-        version_no: newVersion,
-        created_by: validCreatedBy,
-        status: 'ACTIVE'
-      }, { transaction });
-      insertedMappings.push(mapping);
+    const insertedMappings = [];
+
+    // Insert individual (non-group) materials
+    if (hasMaterials) {
+      for (const material of materials) {
+        const mapping = await TrolleyMaterialMapping.create({
+          trolley_type_id,
+          material_id: material.material_id,
+          max_quantity: material.max_quantity,
+          is_group_mapping: false,
+          mapping_group_id: null,
+          group_total_quantity: null,
+          effective_from: effective_from || null,
+          effective_to: effective_to || null,
+          notes: notes || null,
+          version_no: newVersion,
+          created_by: validCreatedBy,
+          status: 'ACTIVE'
+        }, { transaction });
+        insertedMappings.push(mapping);
+      }
+    }
+
+    // Insert group materials
+    if (hasGroups) {
+      for (const group of groups) {
+        const groupId = uuidv4();
+        const memberCount = group.material_ids.length;
+        const perMaterialQty = Math.floor(group.group_total_quantity / memberCount);
+
+        for (const materialId of group.material_ids) {
+          const mapping = await TrolleyMaterialMapping.create({
+            trolley_type_id,
+            material_id: materialId,
+            max_quantity: perMaterialQty,
+            is_group_mapping: true,
+            mapping_group_id: groupId,
+            group_total_quantity: group.group_total_quantity,
+            effective_from: effective_from || null,
+            effective_to: effective_to || null,
+            notes: group.notes || notes || null,
+            version_no: newVersion,
+            created_by: validCreatedBy,
+            status: 'ACTIVE'
+          }, { transaction });
+          insertedMappings.push(mapping);
+        }
+      }
     }
 
     await transaction.commit();
@@ -88,12 +187,12 @@ exports.createMapping = async (req, res) => {
   }
 };
 
-// Edit mapping (add/remove materials from existing trolley type mapping)
+// Edit mapping (add/remove materials and groups from existing trolley type mapping)
 exports.editMapping = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
     const { trolleyTypeId } = req.params;
-    const { materials_to_add, materials_to_remove, materials_to_update, updated_by } = req.body;
+    const { materials_to_add, materials_to_remove, materials_to_update, groups_to_add, groups_to_remove, groups_to_update, updated_by } = req.body;
 
     // Verify trolley type exists
     const trolleyType = await TrollyType.findByPk(trolleyTypeId, { transaction });
@@ -105,9 +204,8 @@ exports.editMapping = async (req, res) => {
       });
     }
 
-    // Validate updated_by is a valid UUID or null
-    const validUpdatedBy = updated_by && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updated_by) 
-      ? updated_by 
+    const validUpdatedBy = updated_by && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(updated_by)
+      ? updated_by
       : null;
 
     // Get current max version
@@ -121,28 +219,29 @@ exports.editMapping = async (req, res) => {
     const results = {
       added: [],
       removed: [],
-      updated: []
+      updated: [],
+      groups_added: [],
+      groups_removed: [],
+      groups_updated: []
     };
 
-    // Remove materials (soft delete)
+    // Remove individual materials (permanent delete)
     if (materials_to_remove && Array.isArray(materials_to_remove) && materials_to_remove.length > 0) {
       for (const materialId of materials_to_remove) {
-        await TrolleyMaterialMapping.update(
-          { status: 'INACTIVE', updated_by: validUpdatedBy },
-          {
-            where: {
-              trolley_type_id: trolleyTypeId,
-              material_id: materialId,
-              status: 'ACTIVE'
-            },
-            transaction
-          }
-        );
+        await TrolleyMaterialMapping.destroy({
+          where: {
+            trolley_type_id: trolleyTypeId,
+            material_id: materialId,
+            status: 'ACTIVE',
+            is_group_mapping: false
+          },
+          transaction
+        });
         results.removed.push(materialId);
       }
     }
 
-    // Update existing materials (max_quantity)
+    // Update existing individual materials (max_quantity)
     if (materials_to_update && Array.isArray(materials_to_update) && materials_to_update.length > 0) {
       for (const material of materials_to_update) {
         const [updateCount, updatedRecords] = await TrolleyMaterialMapping.update(
@@ -151,7 +250,8 @@ exports.editMapping = async (req, res) => {
             where: {
               trolley_type_id: trolleyTypeId,
               material_id: material.material_id,
-              status: 'ACTIVE'
+              status: 'ACTIVE',
+              is_group_mapping: false
             },
             returning: true,
             transaction
@@ -163,10 +263,10 @@ exports.editMapping = async (req, res) => {
       }
     }
 
-    // Add new materials
+    // Add new individual materials
     if (materials_to_add && Array.isArray(materials_to_add) && materials_to_add.length > 0) {
       for (const material of materials_to_add) {
-        // Check if mapping already exists and is active
+        // Check if mapping already exists and is active (individual or group)
         const existingMapping = await TrolleyMaterialMapping.findOne({
           where: {
             trolley_type_id: trolleyTypeId,
@@ -184,11 +284,106 @@ exports.editMapping = async (req, res) => {
           trolley_type_id: trolleyTypeId,
           material_id: material.material_id,
           max_quantity: material.max_quantity,
+          is_group_mapping: false,
+          mapping_group_id: null,
+          group_total_quantity: null,
           version_no: newVersion,
           created_by: validUpdatedBy,
           status: 'ACTIVE'
         }, { transaction });
         results.added.push(newMapping);
+      }
+    }
+
+    // Remove entire groups (permanent delete all members by group_id)
+    if (groups_to_remove && Array.isArray(groups_to_remove) && groups_to_remove.length > 0) {
+      for (const groupId of groups_to_remove) {
+        await TrolleyMaterialMapping.destroy({
+          where: {
+            trolley_type_id: trolleyTypeId,
+            mapping_group_id: groupId,
+            status: 'ACTIVE'
+          },
+          transaction
+        });
+        results.groups_removed.push(groupId);
+      }
+    }
+
+    // Update existing groups (change group_total_quantity, recalculate per-material qty)
+    if (groups_to_update && Array.isArray(groups_to_update) && groups_to_update.length > 0) {
+      for (const group of groups_to_update) {
+        // Get current group members
+        const groupMembers = await TrolleyMaterialMapping.findAll({
+          where: {
+            trolley_type_id: trolleyTypeId,
+            mapping_group_id: group.mapping_group_id,
+            status: 'ACTIVE'
+          },
+          transaction
+        });
+
+        if (groupMembers.length > 0) {
+          const perMaterialQty = Math.floor(group.group_total_quantity / groupMembers.length);
+          await TrolleyMaterialMapping.update(
+            {
+              group_total_quantity: group.group_total_quantity,
+              max_quantity: perMaterialQty,
+              updated_by: validUpdatedBy
+            },
+            {
+              where: {
+                trolley_type_id: trolleyTypeId,
+                mapping_group_id: group.mapping_group_id,
+                status: 'ACTIVE'
+              },
+              transaction
+            }
+          );
+          results.groups_updated.push(group.mapping_group_id);
+        }
+      }
+    }
+
+    // Add new groups
+    if (groups_to_add && Array.isArray(groups_to_add) && groups_to_add.length > 0) {
+      for (const group of groups_to_add) {
+        if (!group.material_ids || group.material_ids.length < 2 || !group.group_total_quantity) {
+          continue;
+        }
+
+        // Check no material already has an active mapping
+        const existingMappings = await TrolleyMaterialMapping.findAll({
+          where: {
+            trolley_type_id: trolleyTypeId,
+            material_id: { [Op.in]: group.material_ids },
+            status: 'ACTIVE'
+          },
+          transaction
+        });
+
+        if (existingMappings.length > 0) {
+          continue; // Skip group if any material already mapped
+        }
+
+        const groupId = uuidv4();
+        const memberCount = group.material_ids.length;
+        const perMaterialQty = Math.floor(group.group_total_quantity / memberCount);
+
+        for (const materialId of group.material_ids) {
+          const newMapping = await TrolleyMaterialMapping.create({
+            trolley_type_id: trolleyTypeId,
+            material_id: materialId,
+            max_quantity: perMaterialQty,
+            is_group_mapping: true,
+            mapping_group_id: groupId,
+            group_total_quantity: group.group_total_quantity,
+            version_no: newVersion,
+            created_by: validUpdatedBy,
+            status: 'ACTIVE'
+          }, { transaction });
+          results.groups_added.push(newMapping);
+        }
       }
     }
 
@@ -448,9 +643,31 @@ exports.getMappingByMaterialAndTrolleyType = async (req, res) => {
       });
     }
 
+    // If this is a group mapping, also return group info
+    let groupMappings = null;
+    if (mapping.is_group_mapping && mapping.mapping_group_id) {
+      groupMappings = await TrolleyMaterialMapping.findAll({
+        where: {
+          mapping_group_id: mapping.mapping_group_id,
+          status: 'ACTIVE'
+        },
+        include: [
+          {
+            model: Material,
+            as: 'material',
+            attributes: ['material_id', 'material_code', 'material_name']
+          }
+        ],
+        transaction: null
+      });
+    }
+
     res.status(200).json({
       success: true,
-      data: mapping
+      data: {
+        ...mapping.toJSON(),
+        group_members: groupMappings ? groupMappings.map(gm => gm.toJSON()) : null
+      }
     });
 
   } catch (error) {
@@ -463,7 +680,7 @@ exports.getMappingByMaterialAndTrolleyType = async (req, res) => {
   }
 };
 
-// Delete mapping (soft delete)
+// Delete mapping (permanent delete)
 exports.deleteMapping = async (req, res) => {
   try {
     const { mappingId } = req.params;
@@ -476,8 +693,16 @@ exports.deleteMapping = async (req, res) => {
       });
     }
 
-    mapping.status = 'INACTIVE';
-    await mapping.save();
+    // If it's a group mapping, delete the entire group
+    if (mapping.is_group_mapping && mapping.mapping_group_id) {
+      await TrolleyMaterialMapping.destroy({
+        where: {
+          mapping_group_id: mapping.mapping_group_id
+        }
+      });
+    } else {
+      await mapping.destroy();
+    }
 
     res.status(200).json({
       success: true,

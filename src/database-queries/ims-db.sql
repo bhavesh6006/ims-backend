@@ -592,3 +592,21 @@ ALTER COLUMN duplicate_suppression_sec SET DEFAULT 0;
 
 ALTER TABLE antenna_master
 ALTER COLUMN resend_interval_min SET DEFAULT 1;
+
+
+--trolley code function
+CREATE OR REPLACE FUNCTION update_material_stock_trolley_code()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE material_stock
+    SET trolley_code = NEW.trolley_code
+    WHERE trolley_code = OLD.trolley_code;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trolley_code_update_trigger
+AFTER UPDATE OF trolley_code ON trolley
+FOR EACH ROW
+EXECUTE FUNCTION update_material_stock_trolley_code();

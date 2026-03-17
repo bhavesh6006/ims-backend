@@ -265,7 +265,7 @@ class TrollyController {
       });
 
       if (trollyByQRCode) {
-        if (trollyByCode.trolley_id !== req.params.id) {
+        if (trollyByQRCode.trolley_id !== req.params.id) {
           return res.status(400).json({
             success: false,
             message: 'Trolly with this QR code already exists'

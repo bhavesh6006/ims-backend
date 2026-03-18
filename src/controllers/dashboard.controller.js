@@ -1,6 +1,5 @@
 const Trolly = require('../models/trolly.model');
 const { Material, WorkOrder } = require('../models');
-const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
 exports.getDashboardStats = async (req, res) => {

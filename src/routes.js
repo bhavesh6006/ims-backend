@@ -167,5 +167,6 @@ router.delete('/location-types/:id', locationTypeController.deleteLocationType);
 // Dashboard Routes
 router.get('/dashboard/stats', dashboardController.getDashboardStats);
 router.get('/dashboard/materials', dashboardController.getDashboardMaterials);
+router.get('/dashboard/trollies', dashboardController.getDashboardTrollies);
 
 module.exports = router;

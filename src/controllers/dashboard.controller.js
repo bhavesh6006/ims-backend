@@ -43,8 +43,9 @@ exports.getDashboardMaterials = async (req, res) => {
          COALESCE(SUM(CASE WHEN ms.status = 'CONSUMED' THEN ms.quantity ELSE 0 END), 0) AS consumed_quantity,
          COALESCE(SUM(CASE WHEN ms.status != 'CONSUMED' THEN ms.quantity ELSE 0 END), 0) AS in_stock_quantity,
          (
-           SELECT ms2.location
+           SELECT sl.store_name
            FROM material_stock ms2
+           JOIN store_location sl ON sl.store_location_id = ms2.location::uuid
            WHERE ms2.material_code = m.material_code
              AND ms2.location IS NOT NULL
            ORDER BY ms2.loaded_at DESC

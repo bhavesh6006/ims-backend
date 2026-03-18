@@ -16,6 +16,7 @@ const deviceMasterController = require('./controllers/deviceMaster.controller');
 const authController = require('./controllers/auth.controller');
 const authMiddleware = require('./middleware/auth.middleware');
 const locationTypeController = require('./controllers/locationType.controller');
+const dashboardController = require('./controllers/dashboard.controller');
 
 // Middleware to log which route is being matched
 router.use((req, res, next) => {
@@ -162,5 +163,9 @@ router.get('/location-types/:id', locationTypeController.getLocationTypeById);
 router.post('/location-types', locationTypeController.createLocationType);
 router.put('/location-types/:id', locationTypeController.updateLocationType);
 router.delete('/location-types/:id', locationTypeController.deleteLocationType);
+
+// Dashboard Routes
+router.get('/dashboard/stats', dashboardController.getDashboardStats);
+router.get('/dashboard/materials', dashboardController.getDashboardMaterials);
 
 module.exports = router;

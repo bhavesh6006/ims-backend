@@ -41,13 +41,21 @@ exports.getDashboardMaterials = async (req, res) => {
          s.name AS subtool_name,
          COALESCE(SUM(ms.quantity), 0) AS total_quantity,
          COALESCE(SUM(CASE WHEN ms.status = 'CONSUMED' THEN ms.quantity ELSE 0 END), 0) AS consumed_quantity,
-         COALESCE(SUM(CASE WHEN ms.status != 'CONSUMED' THEN ms.quantity ELSE 0 END), 0) AS in_stock_quantity
+         COALESCE(SUM(CASE WHEN ms.status != 'CONSUMED' THEN ms.quantity ELSE 0 END), 0) AS in_stock_quantity,
+         (
+           SELECT ms2.location
+           FROM material_stock ms2
+           WHERE ms2.material_code = m.material_code
+             AND ms2.location IS NOT NULL
+           ORDER BY ms2.loaded_at DESC
+           LIMIT 1
+         ) AS location_name
        FROM material m
        LEFT JOIN material_type mt ON m.material_type_id = mt.material_type_id
        LEFT JOIN subtool s ON m.subtool_id = s.subtool_id
        LEFT JOIN material_stock ms ON ms.material_code = m.material_code
        GROUP BY m.material_id, m.material_code, m.material_name, m.status, mt.material_type, s.name
-       ORDER BY m.created_at DESC`,
+       ORDER BY m.material_name ASC`,
       { type: sequelize.QueryTypes.SELECT }
     );
 

@@ -310,7 +310,7 @@ exports.editMapping = async (req, res) => {
       }
     }
 
-    // Update existing groups (change group_total_quantity, recalculate per-material qty)
+    // Update existing groups (change group_total_quantity, recalculate per-material qty, and handle member changes)
     if (groups_to_update && Array.isArray(groups_to_update) && groups_to_update.length > 0) {
       for (const group of groups_to_update) {
         // Get current group members
@@ -323,11 +323,52 @@ exports.editMapping = async (req, res) => {
           transaction
         });
 
-        if (groupMembers.length > 0) {
-          const perMaterialQty = Math.floor(group.group_total_quantity / groupMembers.length);
+        if (groupMembers.length === 0) continue;
+
+        const currentMaterialIds = groupMembers.map(m => m.material_id).sort();
+        const newMaterialIds = (group.material_ids || currentMaterialIds).sort();
+
+        const materialsChanged = 
+          currentMaterialIds.length !== newMaterialIds.length ||
+          currentMaterialIds.some((id, idx) => id !== newMaterialIds[idx]);
+
+        const groupTotalQuantity = group.group_total_quantity || groupMembers[0].group_total_quantity;
+
+        if (materialsChanged) {
+          // Materials in the group have changed - delete old members and create new ones
+          await TrolleyMaterialMapping.destroy({
+            where: {
+              trolley_type_id: trolleyTypeId,
+              mapping_group_id: group.mapping_group_id,
+              status: 'ACTIVE'
+            },
+            transaction
+          });
+
+          const memberCount = newMaterialIds.length;
+          const perMaterialQty = Math.floor(groupTotalQuantity / memberCount);
+
+          for (const materialId of newMaterialIds) {
+            await TrolleyMaterialMapping.create({
+              trolley_type_id: trolleyTypeId,
+              material_id: materialId,
+              max_quantity: perMaterialQty,
+              is_group_mapping: true,
+              mapping_group_id: group.mapping_group_id,
+              group_total_quantity: groupTotalQuantity,
+              version_no: newVersion,
+              created_by: validUpdatedBy,
+              status: 'ACTIVE'
+            }, { transaction });
+          }
+
+          results.groups_updated.push(group.mapping_group_id);
+        } else {
+          // Only quantity changed - update in place
+          const perMaterialQty = Math.floor(groupTotalQuantity / groupMembers.length);
           await TrolleyMaterialMapping.update(
             {
-              group_total_quantity: group.group_total_quantity,
+              group_total_quantity: groupTotalQuantity,
               max_quantity: perMaterialQty,
               updated_by: validUpdatedBy
             },

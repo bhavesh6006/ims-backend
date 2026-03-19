@@ -119,11 +119,10 @@ exports.getStockByLocation = async (req, res) => {
           wo.disp_type           AS disptype,
           COALESCE(SUM(ms.quantity), 0) AS instock
         FROM material_stock ms
-        JOIN  store_location sl  ON sl.store_location_id::text = ms.location
-        JOIN  location_type  lt  ON lt.location_type_id = sl.location_type_id
+        LEFT JOIN store_location sl  ON sl.store_location_id::text = ms.location
+        LEFT JOIN location_type  lt  ON lt.location_type_id = sl.location_type_id
         LEFT JOIN work_orders  wo  ON wo.work_order_number = ms.work_order_number
-        WHERE ms.status   != 'CONSUMED'
-          AND ms.location IS NOT NULL
+        WHERE ms.status != 'CONSUMED'
         GROUP BY sl.store_name, wo.tool, wo.sub_tool,
                  wo.door_colour, wo.handle, wo.micom, wo.lock1, wo.disp_type
         HAVING COALESCE(SUM(ms.quantity), 0) > 0
@@ -140,7 +139,7 @@ exports.getStockByLocation = async (req, res) => {
         instock,
         SUM(instock) OVER (PARTITION BY location)::int AS location_total_in_stock
       FROM base
-      ORDER BY location, subtool ASC NULLS LAST, tool ASC NULLS LAST
+      ORDER BY location ASC NULLS LAST, subtool ASC NULLS LAST, tool ASC NULLS LAST
       `,
       { type: sequelize.QueryTypes.SELECT }
     );

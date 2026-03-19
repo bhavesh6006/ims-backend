@@ -103,6 +103,75 @@ exports.getDashboardTrollies = async (req, res) => {
   }
 };
 
+exports.getStockByLocation = async (req, res) => {
+  try {
+    const rows = await sequelize.query(
+      `
+      WITH base AS (
+        SELECT
+          sl.store_name          AS location,
+          wo.tool                AS tool,
+          wo.sub_tool            AS subtool,
+          wo.door_colour         AS doorcolour,
+          wo.handle              AS handle,
+          wo.micom               AS micom,
+          wo.lock1               AS locktype,
+          wo.disp_type           AS disptype,
+          COALESCE(SUM(ms.quantity), 0) AS instock
+        FROM material_stock ms
+        JOIN  store_location sl  ON sl.store_location_id::text = ms.location
+        JOIN  location_type  lt  ON lt.location_type_id = sl.location_type_id
+        LEFT JOIN work_orders  wo  ON wo.work_order_number = ms.work_order_number
+        WHERE ms.status   != 'CONSUMED'
+          AND ms.location IS NOT NULL
+        GROUP BY sl.store_name, wo.tool, wo.sub_tool,
+                 wo.door_colour, wo.handle, wo.micom, wo.lock1, wo.disp_type
+        HAVING COALESCE(SUM(ms.quantity), 0) > 0
+      )
+      SELECT
+        location,
+        tool,
+        subtool,
+        doorcolour,
+        handle,
+        micom,
+        locktype,
+        disptype,
+        instock,
+        SUM(instock) OVER (PARTITION BY location)::int AS location_total_in_stock
+      FROM base
+      ORDER BY location, subtool ASC NULLS LAST, tool ASC NULLS LAST
+      `,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+
+    const groupedMap = {};
+    for (const row of rows) {
+      const { location, location_total_in_stock, ...material } = row;
+      if (!groupedMap[location]) {
+        groupedMap[location] = {
+          location,
+          total_instock: location_total_in_stock,
+          materials: []
+        };
+      }
+      groupedMap[location].materials.push(material);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: Object.values(groupedMap)
+    });
+  } catch (error) {
+    console.error('Error fetching stock by location:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve stock by location',
+      error: error.message
+    });
+  }
+};
+
 exports.getDashboardMaterials = async (req, res) => {
   try {
     const { page = 1, limit = 10, type, location, subtool } = req.query;

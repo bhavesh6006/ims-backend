@@ -203,11 +203,11 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
   try {
     const now = new Date();
     const pad = n => n.toString().padStart(2, '0');
-    const plan_date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const plandate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
     const payload = {
       credentials: {
-        plan_date
+        plan_date: plandate
       }
     };
 
@@ -258,7 +258,7 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
           disp_type,
           plan_qty,
           shift_no,
-          date,
+          plan_date,
           created_by
         } = orderObj;
         if (W_O && wo_lot_qty) {
@@ -268,27 +268,35 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
             const woNum = workOrderNumbers[i];
             const qty = quantities[i];
             const exists = await WorkOrder.findOne({ where: { work_order_number: woNum, sub_tool } });
-            if (exists) continue;
-            const payload = {
-              work_order_number: woNum,
-              sr_no: seq_no || i + 1,
-              date: plan_date,
-              tool,
-              sub_tool,
-              door_colour: door_color || null,
-              handle: handel || null,
-              micom: micom || null,
-              lock1: lock1 || null,
-              disp_type: disp_type || null,
-              input_plan: qty,
-              consumed_quantity: 0,
-              balance_quantity: 0,
-              output_plan: 0,
-              status: 'PENDING',
-              created_by: created_by || null
-            };
-            await WorkOrder.create(payload);
-            console.log(`Created work order ${woNum} with quantity ${qty}`);
+            if (exists) {
+              console.log(`Work order ${woNum} with sub_tool ${sub_tool} already exists. Skipping creation and update date and seq no.`);
+              // Update the existing work order with new date and seq_no
+              await WorkOrder.update(
+                { date: plan_date, sr_no: seq_no || i + 1 },
+                { where: { work_order_number: woNum, sub_tool } }
+              );
+            } else {
+              const payload = {
+                work_order_number: woNum,
+                sr_no: seq_no || i + 1,
+                date: plan_date,
+                tool,
+                sub_tool,
+                door_colour: door_color || null,
+                handle: handel || null,
+                micom: micom || null,
+                lock1: lock1 || null,
+                disp_type: disp_type || null,
+                input_plan: qty,
+                consumed_quantity: 0,
+                balance_quantity: 0,
+                output_plan: 0,
+                status: 'PENDING',
+                created_by: created_by || null
+              };
+              await WorkOrder.create(payload);
+              console.log(`Created work order ${woNum} with quantity ${qty}`);
+            }
           }
         }
       }
@@ -300,6 +308,12 @@ exports.getWorkOrderRefreshSummary = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching work order refresh summary:', error);
+    let failed_reason = error && error.message ? error.message.toString() : 'Something went wrong.';
+    await WorkOrderRefresh.create({
+      last_refresh: new Date(),
+      status: 'failure',
+      failed_reason
+    });
     res.status(500).json({
       success: false,
       message: 'Error fetching work order refresh summary',

@@ -649,3 +649,38 @@ DELETE FROM trolley_material_mapping WHERE status = 'INACTIVE';
 ALTER TABLE location_type
 ADD CONSTRAINT chk_location_type_name
 CHECK (name IN ('CONSUMED', 'IN_TRANSIT', 'IN_STOCK'));
+
+-- Added Manual Consumption location
+INSERT INTO public.store_location
+(
+    store_location_id,
+    location_type_id,
+    store_code,
+    store_name,
+    factory_name,
+    plant_name,
+    hierarchy_level,
+    total_area,
+    area_unit,
+    status,
+    remarks
+)
+VALUES
+(
+    '3290aa81-5b10-42cf-b5cc-de2b50aec0c8'::uuid,
+    
+    (SELECT location_type_id 
+     FROM public.location_type 
+     WHERE name = 'CONSUMED' 
+     LIMIT 1),
+     
+    'Manual',
+    'Manual',
+    '',
+    '',
+    '',
+    0.00,
+    '',
+    'ACTIVE'::public."status_enum",
+    'Location for manual consumption'
+);

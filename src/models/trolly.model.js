@@ -87,6 +87,14 @@ const Trolly = sequelize.define('Trolly', {
 		type: DataTypes.BOOLEAN,
 		defaultValue: false
 	},
+  loading_status: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'EMPTY',
+    validate: {
+      isIn: [['EMPTY', 'PARTIAL_LOADED', 'FULL_LOADED']],
+    },
+    comment: 'EMPTY=no material loaded, PARTIAL_LOADED=some materials loaded, FULL_LOADED=all materials loaded'
+  },
 }, {
   tableName: 'trolley',
   indexes: [

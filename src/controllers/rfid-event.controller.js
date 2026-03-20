@@ -2,14 +2,33 @@ const rfidEventService = require('../services/rfid-event.service');
 
 const processRfidEvent = async (req, res) => {
     try {
-        const { EPC, LocationID, ZoneID, AnteenaId, DeviceId } = req.body;
+        let { EPC, LocationID, ZoneID, AnteenaId, DeviceId, Type } = req.body;
 
         // Validate required fields
-        if (!EPC || !LocationID || !AnteenaId || !DeviceId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required fields: EPC, LocationID, AnteenaId, DeviceId'
-            });
+        if (Type === 'Manual'){
+            if (!EPC || !Type) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Missing required fields: EPC, Type'
+                });
+            } else if (Type === 'Manual') {
+                LocationID = '3290aa81-5b10-42cf-b5cc-de2b50aec0c8';
+                ZoneID = null;
+                AnteenaId = null;
+                DeviceId = null;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid Type value.'
+                });
+            }
+        } else {
+            if (!EPC || !LocationID || !AnteenaId || !DeviceId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Missing required fields: EPC, LocationID, AnteenaId, DeviceId'
+                });
+            }
         }
 
         const result = await rfidEventService.processEvent({

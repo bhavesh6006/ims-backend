@@ -10,7 +10,7 @@ require('./models');
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-    : ['http://localhost:5173', 'http://localhost:3001'];
+    : ['http://localhost:5173', 'http://localhost:3001', 'http://10.101.32.161:3010'];
 
 app.use(cors({
     origin: allowedOrigins,

@@ -1,6 +1,6 @@
 const { StoreLocation, LocationType } = require('../models');
 const sequelize = require('../config/database');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 class StoreLocationController {
   async getAllStoreLocations(req, res) {
@@ -18,15 +18,32 @@ class StoreLocationController {
       // Add search functionality
       if (search && search.trim() !== '') {
         const searchTerm = `%${search.trim()}%`;
-        whereConditions.push({
-          [Op.or]: [
-            { store_code: { [Op.iLike]: searchTerm } },
-            { store_name: { [Op.iLike]: searchTerm } },
-            { factory_name: { [Op.iLike]: searchTerm } },
-            { plant_name: { [Op.iLike]: searchTerm } },
-            { hierarchy_level: { [Op.iLike]: searchTerm } }
-          ]
+
+        // Find matching location type IDs by name
+        const matchingTypes = await LocationType.findAll({
+          where: { name: { [Op.iLike]: searchTerm } },
+          attributes: ['location_type_id'],
+          raw: true
         });
+        const matchingTypeIds = matchingTypes.map(t => t.location_type_id);
+
+        const orConditions = [
+          { store_code: { [Op.iLike]: searchTerm } },
+          { store_name: { [Op.iLike]: searchTerm } },
+          { factory_name: { [Op.iLike]: searchTerm } },
+          { plant_name: { [Op.iLike]: searchTerm } },
+          { hierarchy_level: { [Op.iLike]: searchTerm } },
+          { area_unit: { [Op.iLike]: searchTerm } },
+          { remarks: { [Op.iLike]: searchTerm } },
+          // Cast ENUM status to text before using ILIKE
+          Sequelize.where(Sequelize.cast(Sequelize.col('StoreLocation.status'), 'text'), { [Op.iLike]: searchTerm }),
+        ];
+
+        if (matchingTypeIds.length > 0) {
+          orConditions.push({ location_type_id: { [Op.in]: matchingTypeIds } });
+        }
+
+        whereConditions.push({ [Op.or]: orConditions });
       }
 
       // Combine all conditions with AND

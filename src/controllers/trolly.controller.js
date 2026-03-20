@@ -1,7 +1,7 @@
 const Trolly = require('../models/trolly.model');
 const TrollyType = require('../models/trollyType.model');
 const TrollyCondition = require('../models/trollyCondition.model');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 // StoreLocation
 
 
@@ -28,15 +28,44 @@ class TrollyController {
       // Add search functionality
       if (search && search.trim() !== '') {
         const searchTerm = `%${search.trim()}%`;
-        whereConditions.push({
-          [Op.or]: [
-            { trolley_code: { [Op.iLike]: searchTerm } },
-            { qr_code: { [Op.iLike]: searchTerm } },
-            { barcode: { [Op.iLike]: searchTerm } },
-            { notes: { [Op.iLike]: searchTerm } },
-            { ownership: { [Op.iLike]: searchTerm } }
-          ]
+
+        // Find matching trolly type IDs by name
+        const matchingTypes = await TrollyType.findAll({
+          where: { trolly_type: { [Op.iLike]: searchTerm } },
+          attributes: ['trolly_type_id'],
+          raw: true
         });
+        const matchingTypeIds = matchingTypes.map(t => t.trolly_type_id);
+
+        // Find matching trolley condition IDs by name
+        const matchingConditions = await TrollyCondition.findAll({
+          where: { name: { [Op.iLike]: searchTerm } },
+          attributes: ['trolley_condition_id'],
+          raw: true
+        });
+        const matchingConditionIds = matchingConditions.map(c => c.trolley_condition_id);
+
+        const orConditions = [
+          { trolley_code: { [Op.iLike]: searchTerm } },
+          { qr_code: { [Op.iLike]: searchTerm } },
+          { barcode: { [Op.iLike]: searchTerm } },
+          { notes: { [Op.iLike]: searchTerm } },
+          { ownership: { [Op.iLike]: searchTerm } },
+          { dimension_unit: { [Op.iLike]: searchTerm } },
+          { volume_unit: { [Op.iLike]: searchTerm } },
+          // Cast ENUM status to text before using ILIKE
+          Sequelize.where(Sequelize.cast(Sequelize.col('Trolly.status'), 'text'), { [Op.iLike]: searchTerm }),
+        ];
+
+        if (matchingTypeIds.length > 0) {
+          orConditions.push({ trolly_type_id: { [Op.in]: matchingTypeIds } });
+        }
+
+        if (matchingConditionIds.length > 0) {
+          orConditions.push({ trolley_condition_id: { [Op.in]: matchingConditionIds } });
+        }
+
+        whereConditions.push({ [Op.or]: orConditions });
       }
 
       // Combine all conditions with AND

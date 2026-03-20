@@ -1,5 +1,5 @@
 const { Material, MaterialType, Subtool } = require('../models');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 class MaterialController {
   /**
@@ -24,12 +24,41 @@ class MaterialController {
       // Add search functionality
       if (search && search.trim() !== '') {
         const searchTerm = `%${search.trim()}%`;
-        whereConditions.push({
-          [Op.or]: [
-            { material_code: { [Op.iLike]: searchTerm } },
-            { material_name: { [Op.iLike]: searchTerm } }
-          ]
+
+        // Find matching material type IDs by name
+        const matchingTypes = await MaterialType.findAll({
+          where: { material_type: { [Op.iLike]: searchTerm } },
+          attributes: ['material_type_id'],
+          raw: true
         });
+        const matchingTypeIds = matchingTypes.map(t => t.material_type_id);
+
+        // Find matching subtool IDs by name
+        const matchingSubtools = await Subtool.findAll({
+          where: { name: { [Op.iLike]: searchTerm } },
+          attributes: ['subtool_id'],
+          raw: true
+        });
+        const matchingSubtoolIds = matchingSubtools.map(s => s.subtool_id);
+
+        const orConditions = [
+          { material_code: { [Op.iLike]: searchTerm } },
+          { material_name: { [Op.iLike]: searchTerm } },
+          { dimension_unit: { [Op.iLike]: searchTerm } },
+          { weight_unit: { [Op.iLike]: searchTerm } },
+          // Cast ENUM status to text before using ILIKE
+          Sequelize.where(Sequelize.cast(Sequelize.col('Material.status'), 'text'), { [Op.iLike]: searchTerm }),
+        ];
+
+        if (matchingTypeIds.length > 0) {
+          orConditions.push({ material_type_id: { [Op.in]: matchingTypeIds } });
+        }
+
+        if (matchingSubtoolIds.length > 0) {
+          orConditions.push({ subtool_id: { [Op.in]: matchingSubtoolIds } });
+        }
+
+        whereConditions.push({ [Op.or]: orConditions });
       }
 
       // Combine all conditions with AND

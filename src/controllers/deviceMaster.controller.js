@@ -1,6 +1,6 @@
 const { DeviceMaster } = require('../models');
 const sequelize = require('../config/database');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 class DeviceMasterController {
   // Get all devices with server-side pagination and search
@@ -26,7 +26,13 @@ class DeviceMasterController {
             { department: { [Op.iLike]: searchTerm } },
             { hostname: { [Op.iLike]: searchTerm } },
             { serial_no: { [Op.iLike]: searchTerm } },
-            { model: { [Op.iLike]: searchTerm } }
+            { model: { [Op.iLike]: searchTerm } },
+            { manufacturer: { [Op.iLike]: searchTerm } },
+            { firmware_version: { [Op.iLike]: searchTerm } },
+            // Cast ENUM status to text before using ILIKE
+            Sequelize.where(Sequelize.cast(Sequelize.col('DeviceMaster.status'), 'text'), { [Op.iLike]: searchTerm }),
+            // Cast INET ip_address to text before using ILIKE
+            Sequelize.where(Sequelize.cast(Sequelize.col('DeviceMaster.ip_address'), 'text'), { [Op.iLike]: searchTerm }),
           ]
         });
       }

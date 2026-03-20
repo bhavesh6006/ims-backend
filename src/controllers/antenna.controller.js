@@ -1,6 +1,6 @@
 const { Antenna, DeviceMaster, StoreLocationAntenna, StoreLocation } = require('../models');
 const sequelize = require('../config/database');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 
 class AntennaController {
   // Get all antennas with server-side pagination and search
@@ -19,15 +19,54 @@ class AntennaController {
       // Add search functionality
       if (search && search.trim() !== '') {
         const searchTerm = `%${search.trim()}%`;
-        whereConditions.push({
-          [Op.or]: [
-            { antenna_name: { [Op.iLike]: searchTerm } },
-            { location_name: { [Op.iLike]: searchTerm } },
-            { antenna_type: { [Op.iLike]: searchTerm } },
-            { manufacturer: { [Op.iLike]: searchTerm } },
-            { model: { [Op.iLike]: searchTerm } }
-          ]
+
+        // Find matching device IDs by name or IP
+        const matchingDevices = await DeviceMaster.findAll({
+          where: {
+            [Op.or]: [
+              { device_name: { [Op.iLike]: searchTerm } },
+              Sequelize.where(Sequelize.cast(Sequelize.col('DeviceMaster.ip_address'), 'text'), { [Op.iLike]: searchTerm }),
+            ]
+          },
+          attributes: ['device_id'],
+          raw: true
         });
+        const matchingDeviceIds = matchingDevices.map(d => d.device_id);
+
+        // Find matching store location IDs by store_name or store_code
+        const matchingLocations = await StoreLocation.findAll({
+          where: {
+            [Op.or]: [
+              { store_name: { [Op.iLike]: searchTerm } },
+              { store_code: { [Op.iLike]: searchTerm } },
+            ]
+          },
+          attributes: ['store_location_id'],
+          raw: true
+        });
+        const matchingLocationIds = matchingLocations.map(l => l.store_location_id);
+
+        const orConditions = [
+          { antenna_name: { [Op.iLike]: searchTerm } },
+          { location_name: { [Op.iLike]: searchTerm } },
+          { antenna_type: { [Op.iLike]: searchTerm } },
+          { manufacturer: { [Op.iLike]: searchTerm } },
+          { model: { [Op.iLike]: searchTerm } },
+          { orientation: { [Op.iLike]: searchTerm } },
+          { polarization: { [Op.iLike]: searchTerm } },
+          // Cast integer antenna_no to text for searching
+          Sequelize.where(Sequelize.cast(Sequelize.col('Antenna.antenna_no'), 'text'), { [Op.iLike]: searchTerm }),
+        ];
+
+        if (matchingDeviceIds.length > 0) {
+          orConditions.push({ device_id: { [Op.in]: matchingDeviceIds } });
+        }
+
+        if (matchingLocationIds.length > 0) {
+          orConditions.push({ store_location_id: { [Op.in]: matchingLocationIds } });
+        }
+
+        whereConditions.push({ [Op.or]: orConditions });
       }
 
       // Combine all conditions with AND

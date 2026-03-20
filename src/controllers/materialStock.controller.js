@@ -2,8 +2,9 @@ const { MaterialStock, StoreLocation } = require('../models');
 const Trolly = require('../models/trolly.model');
 const sequelize = require('../config/database');
 const { Op } = require('sequelize');
+const loadingService = require('../services/loading.service');
 
-// Create new material stock entry
+// Create new material stock entry (with group-aware loading support)
 exports.createMaterialStock = async (req, res) => {
   try {
     const {
@@ -17,10 +18,51 @@ exports.createMaterialStock = async (req, res) => {
       loaded_by,
       loaded_at,
       status,
-      remarks
+      remarks,
+      // Group-aware loading fields
+      trolley_id,
+      trolley_type_id,
+      material_id
     } = req.body;
 
-    // Validate required fields
+    // If trolley_id, trolley_type_id, and material_id are provided,
+    // use group-aware loading service
+    if (trolley_id && trolley_type_id && material_id) {
+      if (!material_code || !trolley_code || !work_order_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'material_code, trolley_code, and work_order_id are required for loading'
+        });
+      }
+
+      const result = await loadingService.processLoading({
+        trolleyCode: trolley_code,
+        trolleyId: trolley_id,
+        trolleyTypeId: trolley_type_id,
+        materialCode: material_code,
+        materialId: material_id,
+        workOrderId: work_order_id,
+        workOrderNumber: work_order_number,
+        qrCode: req.body.qr_code,
+        loadedBy: loaded_by || 'current-user-id'
+      });
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        groupInfo: result.groupInfo || null
+      });
+    }
+
+    // Fallback: direct create (original behavior for non-group calls)
     if (!material_code || !trolley_code || !quantity) {
       return res.status(400).json({
         success: false,
@@ -28,7 +70,6 @@ exports.createMaterialStock = async (req, res) => {
       });
     }
 
-    // Validate quantity
     if (quantity < 0) {
       return res.status(400).json({
         success: false,

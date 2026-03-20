@@ -610,3 +610,77 @@ CREATE TRIGGER trolley_code_update_trigger
 AFTER UPDATE OF trolley_code ON trolley
 FOR EACH ROW
 EXECUTE FUNCTION update_material_stock_trolley_code();
+
+-- ===================================================================
+-- GROUP MAPPING ENHANCEMENT
+-- ===================================================================
+
+-- Add group mapping columns to trolley_material_mapping
+ALTER TABLE trolley_material_mapping 
+ADD COLUMN IF NOT EXISTS mapping_group_id UUID DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS group_total_quantity INTEGER DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS is_group_mapping BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Add index for group lookups
+CREATE INDEX IF NOT EXISTS idx_trolley_material_mapping_group 
+ON trolley_material_mapping(mapping_group_id) WHERE mapping_group_id IS NOT NULL;
+
+-- Add loading_status to trolley table (EMPTY, PARTIAL_LOADED, FULL_LOADED)
+ALTER TABLE trolley ADD COLUMN IF NOT EXISTS loading_status VARCHAR(20) DEFAULT 'EMPTY' 
+CHECK (loading_status IN ('EMPTY', 'PARTIAL_LOADED', 'FULL_LOADED'));
+
+-- Add mapping_group_id to material_stock to track group loading
+ALTER TABLE material_stock 
+ADD COLUMN IF NOT EXISTS mapping_group_id UUID DEFAULT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_material_stock_mapping_group 
+ON material_stock(mapping_group_id) WHERE mapping_group_id IS NOT NULL;
+
+COMMENT ON COLUMN trolley_material_mapping.mapping_group_id IS 'UUID to identify a group of materials mapped together. All materials in same group share this ID.';
+COMMENT ON COLUMN trolley_material_mapping.group_total_quantity IS 'Total quantity for the entire group, divided equally among group members.';
+COMMENT ON COLUMN trolley_material_mapping.is_group_mapping IS 'TRUE if this mapping is part of a group, FALSE for individual mapping.';
+COMMENT ON COLUMN trolley.loading_status IS 'EMPTY=no material loaded, PARTIAL_LOADED=some group materials loaded, FULL_LOADED=all materials loaded';
+COMMENT ON COLUMN material_stock.mapping_group_id IS 'References the mapping group this stock entry belongs to, for tracking partial/full group loading';
+
+-- Cleanup: Remove old INACTIVE mapping records (one-time migration)
+DELETE FROM trolley_material_mapping WHERE status = 'INACTIVE';
+
+-- Add the CHECK constraint
+ALTER TABLE location_type
+ADD CONSTRAINT chk_location_type_name
+CHECK (name IN ('CONSUMED', 'IN_TRANSIT', 'IN_STOCK'));
+
+-- Added Manual Consumption location
+INSERT INTO public.store_location
+(
+    store_location_id,
+    location_type_id,
+    store_code,
+    store_name,
+    factory_name,
+    plant_name,
+    hierarchy_level,
+    total_area,
+    area_unit,
+    status,
+    remarks
+)
+VALUES
+(
+    '3290aa81-5b10-42cf-b5cc-de2b50aec0c8'::uuid,
+    
+    (SELECT location_type_id 
+     FROM public.location_type 
+     WHERE name = 'CONSUMED' 
+     LIMIT 1),
+     
+    'Manual',
+    'Manual',
+    '',
+    '',
+    '',
+    0.00,
+    '',
+    'ACTIVE'::public."status_enum",
+    'Location for manual consumption'
+);

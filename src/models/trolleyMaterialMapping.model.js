@@ -33,6 +33,24 @@ const TrolleyMaterialMapping = sequelize.define('TrolleyMaterialMapping', {
     },
     comment: 'Maximum quantity of material allowed in this trolley type'
   },
+  mapping_group_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'UUID to identify a group of materials mapped together'
+  },
+  group_total_quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Total quantity for the entire group, divided equally among group members'
+  },
+  is_group_mapping: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'TRUE if this mapping is part of a group'
+  },
   effective_from: {
     type: DataTypes.DATEONLY,
     allowNull: true,
@@ -50,14 +68,12 @@ const TrolleyMaterialMapping = sequelize.define('TrolleyMaterialMapping', {
   },
   status: {
     type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
-    defaultValue: 'ACTIVE',
-    allowNull: false,
-    comment: 'Status of the mapping'
+    defaultValue: 'ACTIVE'
   },
   version_no: {
     type: DataTypes.INTEGER,
-    defaultValue: 1,
     allowNull: false,
+    defaultValue: 1,
     comment: 'Version number for tracking mapping history'
   },
   created_by: {

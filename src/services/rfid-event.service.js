@@ -1,5 +1,6 @@
 const sequelize = require('../config/database');
 const { QueryTypes } = require('sequelize');
+const { getIO } = require('../config/socket');
 
 const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) => {
     const transaction = await sequelize.transaction();
@@ -29,7 +30,7 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
         
         // 2. Get trolley by QR code (EPC)
         const [trolley] = await sequelize.query(
-            `SELECT trolley_id, trolley_code, qr_code
+            `SELECT trolley_id, trolley_code, qr_code, trolly_type_id, loading_status
              FROM trolley
              WHERE qr_code = :epc AND status = 'ACTIVE'`,
             {
@@ -73,10 +74,10 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
             throw error;
         }
 
-        // 4. Update trolley is_occupied based on status
+        // 4. Update trolley status based on location type
         if (locationType === 'CONSUMED') {
             await sequelize.query(
-                `UPDATE trolley SET is_occupied = FALSE, updated_at = NOW()
+                `UPDATE trolley SET is_occupied = FALSE, loading_status = 'EMPTY', updated_at = NOW()
                  WHERE trolley_code = :trolleyCode`,
                 {
                     replacements: { trolleyCode },
@@ -86,7 +87,43 @@ const processEvent = async ({ epc, locationId, zoneId, antennaId, deviceId }) =>
             );
         }
 
+        // Fetch affected work order IDs and material stock data for the socket event
+        const affectedStocks = await sequelize.query(
+            `SELECT id, material_code, trolley_code, quantity, status, 
+                    work_order_id, work_order_number, location, loading_type
+             FROM material_stock
+             WHERE trolley_code = :trolleyCode`,
+            {
+                replacements: { trolleyCode },
+                type: QueryTypes.SELECT,
+                transaction
+            }
+        );
+
+        const affectedWorkOrderIds = [...new Set(
+            affectedStocks.map(s => s.work_order_id).filter(Boolean)
+        )];
+
         await transaction.commit();
+
+        // === Emit Socket.IO event ===
+        try {
+            const { emitToWorkOrders } = require('../config/socket');
+            const payload = {
+                event: 'rfid:stockUpdate',
+                trolleyCode,
+                locationType,
+                locationId,
+                locationName: storeLocation.store_name,
+                affectedWorkOrderIds,
+                affectedStocks,
+                timestamp: new Date().toISOString()
+            };
+            emitToWorkOrders('rfid:stockUpdate', affectedWorkOrderIds, payload);
+            console.log(`[Socket.IO] Emitted rfid:stockUpdate for trolley ${trolleyCode}`);
+        } catch (socketError) {
+            console.error('[Socket.IO] Failed to emit event:', socketError.message);
+        }
 
         return {
             message: `RFID event processed successfully. Location type: ${locationType}`,
@@ -122,12 +159,12 @@ const isAlreadyConsumed = async (trolleyCode, transaction) => {
 
 /**
  * CONSUMED: Update material_stock status to CONSUMED,
- * then update work_orders consumed_quantity
+ * then update work_orders consumed_quantity for each respective work order
  */
 const handleConsumed = async (trolleyCode, locationId, transaction) => {
     // Get all active material_stock records for this trolley
     const stockRecords = await sequelize.query(
-        `SELECT id, material_code, trolley_code, quantity, work_order_id, work_order_number
+        `SELECT id, material_code, trolley_code, quantity, work_order_id, work_order_number, mapping_group_id
          FROM material_stock
          WHERE trolley_code = :trolleyCode AND status IN ('IN_STOCK', 'IN_TRANSIT')`,
         {
@@ -143,6 +180,7 @@ const handleConsumed = async (trolleyCode, locationId, transaction) => {
         throw error;
     }
 
+    // Update each stock record and its respective work order
     for (const stock of stockRecords) {
         // Update material_stock status to CONSUMED
         await sequelize.query(
@@ -156,7 +194,7 @@ const handleConsumed = async (trolleyCode, locationId, transaction) => {
             }
         );
 
-        // Update work_orders: only add to consumed_quantity, do not modify balance_quantity
+        // Update work_orders: add to consumed_quantity for the respective work order
         if (stock.work_order_id) {
             await sequelize.query(
                 `UPDATE work_orders

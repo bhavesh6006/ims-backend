@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const { initSocket } = require('./src/config/socket');
 
 // Detect if running as a packaged exe (pkg sets process.pkg)
 const isPkg = typeof process.pkg !== 'undefined';
@@ -80,7 +82,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const PORT = process.env.PORT || 3000;
 
-const server = app.listen(PORT, () => {
+const server = http.createServer(app);
+initSocket(server);
+
+server.listen(PORT, () => {
   const msg = `Server running on port ${PORT}`;
   console.log(msg);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);

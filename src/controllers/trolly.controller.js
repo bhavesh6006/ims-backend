@@ -176,14 +176,14 @@ class TrollyController {
   async getTrollyByCode(req, res) {
     try {
       let trolly = await Trolly.findOne({
-        where: { qr_code: req.params.trollyQRCode },
+        where: { qr_code: { [Op.iLike]: req.params.trollyQRCode } },
         raw: true
       });
 
       // If not found by qr_code, try barcode
       if (!trolly) {
         trolly = await Trolly.findOne({
-          where: { barcode: req.params.trollyQRCode },
+          where: { barcode: { [Op.iLike]: req.params.trollyQRCode } },
           raw: true
         });
       }
